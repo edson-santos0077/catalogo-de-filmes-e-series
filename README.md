@@ -1,12 +1,8 @@
-Aqui está uma proposta para o ficheiro `README.md` do seu projeto, redigida em Português de Portugal e estruturada com base nas informações e requisitos fornecidos.
-
----
-
 # Catálogo de Filmes e Séries
 
 ## 📌 Visão Geral
 
-Este projeto consiste numa API desenvolvida em FastAPI (ou sistema de linha de comando CLI) para gerir um catálogo pessoal de filmes e séries. O objetivo do sistema é permitir que o utilizador acompanhe o progresso de visualização de séries, compare avaliações entre mídias, gira listas personalizadas e consulte relatórios de consumo. A modelação do sistema é fortemente orientada a objetos (POO), enfatizando conceitos como herança, encapsulamento, validações e composição.
+Este projeto consiste numa API desenvolvida em FastAPI (ou sistema de linha de comando CLI) para gerir um catálogo pessoal de filmes e séries. O objetivo do sistema é permitir que o utilizador acompanhe o progresso de visualização de séries, compare avaliações entre mídias, gira listas personalizadas e consulte relatórios de consumo. A modelação do sistema é orientada a objetos (POO), enfatizando conceitos como herança, encapsulamento, validações e composição.
 
 ## 🚀 Funcionalidades Principais
 
@@ -37,12 +33,12 @@ A arquitetura do projeto está organizada em camadas, separando a interface, as 
 catalogo_filmes/
 │
 ├── main.py                  # Ponto de entrada da aplicação FastAPI
-├── dados.py                 # Módulo exigido para persistência (GerenciadorDados)
-├── settings.json            # Ficheiro de configurações exigido no projeto
-├── README.md                # O seu ficheiro com a explicação, objetivo e Mermaid
-├── requirements.txt         # Lista de dependências (fastapi, uvicorn, pytest)
+├── dados.py                 # Módulo exigido para persistência 
+├── settings.json            # Arquivo de configurações exigido no projeto
+├── README.md                # Arquivo com a explicação, objetivo e Mermaid
+├── requirements.txt         # Lista de dependências 
 │
-├── api/                     # Camada de Interface (Rotas FastAPI)
+├── api/                     # Camada de Interface (FastAPI)
 │   ├── __init__.py
 │   └── rotas.py             # Representa a classe InterfaceFastAPI
 │
