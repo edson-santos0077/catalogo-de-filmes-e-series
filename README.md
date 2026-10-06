@@ -64,7 +64,8 @@ catalogo_filmes/
 
 Abaixo encontra-se a representação da modelação orientada a objetos do projeto, ilustrando os relacionamentos de herança, composição e agregação:
 
-```classDiagram
+```mermaid
+classDiagram
     direction TB
 
     class StatusVisualizacao {
