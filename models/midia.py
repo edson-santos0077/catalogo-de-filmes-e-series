@@ -1,7 +1,8 @@
 from abc import ABC, abstractmethod
 from typing import List, Optional, Union
-from datetime import date
+from datetime import date, datetime
 from models.enums import StatusVisualizacao, TipoMidia
+from models.exceptions import ValorInvalidoError, EstadoInvalidoError
 
 
 class Midia(ABC):
@@ -33,6 +34,7 @@ class Midia(ABC):
         self.elenco = elenco or []
         self._status = StatusVisualizacao.NAO_ASSISTIDO
         self._nota: Optional[float] = None
+        self._data_conclusao: Optional[datetime] = None
 
     @property
     def titulo(self) -> str:
@@ -41,7 +43,7 @@ class Midia(ABC):
     @titulo.setter
     def titulo(self, valor: str):
         if not valor or not valor.strip():
-            raise ValueError("O título não pode ser vazio.")
+            raise ValorInvalidoError("O título não pode ser vazio.")
         self._titulo = valor.strip()
 
     @property
@@ -51,7 +53,7 @@ class Midia(ABC):
     @genero.setter
     def genero(self, valor: str):
         if not valor or not valor.strip():
-            raise ValueError("O gênero não pode ser vazio.")
+            raise ValorInvalidoError("O gênero não pode ser vazio.")
         self._genero = valor.strip()
 
     @property
@@ -61,7 +63,7 @@ class Midia(ABC):
     @ano.setter
     def ano(self, valor: int):
         if valor <= 0:
-            raise ValueError("O ano deve ser um valor positivo.")
+            raise ValorInvalidoError("O ano deve ser um valor positivo.")
         self._ano = valor
 
     @property
@@ -73,16 +75,62 @@ class Midia(ABC):
         return self._nota
 
     @property
+    def elenco(self) -> List[str]:
+        """Retorna a lista de nomes do elenco principal."""
+        return self._elenco
+
+    @elenco.setter
+    def elenco(self, valor: Optional[List[str]]):
+        if valor is None:
+            self._elenco = []
+        elif isinstance(valor, list):
+            if not all(isinstance(item, str) and item.strip() for item in valor):
+                raise ValorInvalidoError("Todos os itens do elenco devem ser strings não vazias.")
+            self._elenco = [item.strip() for item in valor]
+        else:
+            raise TypeError("O elenco deve ser uma lista de strings.")
+
+    @property
+    def data_conclusao(self) -> Optional[datetime]:
+        """Retorna a data e hora em que a mídia foi concluída."""
+        return self._data_conclusao
+
+    @data_conclusao.setter
+    def data_conclusao(self, valor: Optional[Union[datetime, date, str]]):
+        if valor is None:
+            self._data_conclusao = None
+        elif isinstance(valor, datetime):
+            self._data_conclusao = valor
+        elif isinstance(valor, date):
+            # Converte date para datetime (no início do dia)
+            self._data_conclusao = datetime.combine(valor, datetime.min.time())
+        elif isinstance(valor, str):
+            try:
+                self._data_conclusao = datetime.fromisoformat(valor)
+            except ValueError:
+                raise ValorInvalidoError("A data de conclusão deve estar no formato ISO (ex.: YYYY-MM-DDTHH:MM:SS).")
+        else:
+            raise TypeError("A data de conclusão deve ser do tipo datetime, date, string no formato ISO ou None.")
+            
+            
+    @property
     def status(self) -> StatusVisualizacao:
         return self._status
 
     def avaliar(self, valor: float) -> None:
         if not (0 <= valor <= 10):
-            raise ValueError("A nota deve estar entre 0 e 10.")
+            raise ValorInvalidoError("A nota deve estar entre 0 e 10.")
         self._nota = float(valor)
 
     def alterar_status(self, novo_status: StatusVisualizacao) -> None:
+        if not isinstance(novo_status, StatusVisualizacao):
+            raise EstadoInvalidoError("O status informado é inválido.")
+            
         self._status = novo_status
+        if novo_status == StatusVisualizacao.ASSISTIDO and self._data_conclusao is None:
+            self.data_conclusao = datetime.now()
+        elif novo_status != StatusVisualizacao.ASSISTIDO:
+            self.data_conclusao = None
 
     @property
     @abstractmethod
@@ -141,7 +189,7 @@ class Filme(Midia):
     @duracao_minutos.setter
     def duracao_minutos(self, valor: int):
         if valor <= 0:
-            raise ValueError("A duração do filme deve ser maior que zero minutos.")
+            raise ValorInvalidoError("A duração do filme deve ser maior que zero minutos.")
         self._duracao_minutos = valor
 
     def __str__(self) -> str:
@@ -200,7 +248,7 @@ class Episodio:
     @titulo.setter
     def titulo(self, valor: str):
         if not valor or not valor.strip():
-            raise ValueError("O título do episódio não pode ser vazio.")
+            raise ValorInvalidoError("O título do episódio não pode ser vazio.")
         self._titulo = valor.strip()
 
     @property

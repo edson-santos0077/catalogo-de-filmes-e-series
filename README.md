@@ -28,23 +28,24 @@ Este projeto consiste numa API desenvolvida em FastAPI (ou sistema de linha de c
 ## 📂 Estrutura de Arquivos e Diretórios
 
 A arquitetura do projeto está organizada em camadas, separando a interface, as regras de negócio e os modelos de domínio:
-
-```text
+```
 catalogo_filmes/
 │
 ├── main.py                  # Ponto de entrada da aplicação FastAPI
-├── dados.py                 # Módulo exigido para persistência 
-├── settings.json            # Arquivo de configurações exigido no projeto
-├── README.md                # Arquivo com a explicação, objetivo e Mermaid
-├── requirements.txt         # Lista de dependências 
+├── dados.py                 # Módulo de persistência 
+├── settings.json            # Arquivo de configurações
+├── README.md                # Arquivo com documentação e diagrama Mermaid
+├── requirements.txt         # Dependências do projeto
 │
 ├── api/                     # Camada de Interface (FastAPI)
 │   ├── __init__.py
-│   └── rotas.py             # Representa a classe InterfaceFastAPI
+│   └── rotas.py             
 │
 ├── models/                  # Camada de Domínio (Classes principais)
 │   ├── __init__.py
 │   ├── enums.py             # StatusVisualizacao e TipoMidia
+│   ├── exceptions.py        # Exceções customizadas (ValorInvalidoError, etc.)
+│   ├── mixins.py            # AvaliavelMixin e SerializavelMixin
 │   ├── midia.py             # Midia, Filme, Serie, Temporada, Episodio
 │   └── usuario.py           # Usuario, ListaPersonalizada, RegistroHistorico
 │
@@ -53,19 +54,17 @@ catalogo_filmes/
 │   ├── relatorio.py         # RelatorioService (Cálculos de médias e top 10)
 │   └── configuracao.py      # Classe Configuracao (Lê o settings.json)
 │
-└── tests/                   # Diretório para os testes automatizados
+└── tests/                   # Diretório de testes automatizados (pytest)
     ├── __init__.py
     ├── test_midia.py        # Testes das regras de negócio de Mídias/Episódios
     └── test_relatorios.py   # Testes dos cálculos matemáticos
-
 ```
 
 ## 📊 Diagrama de Classes (UML)
 
 Abaixo encontra-se a representação da modelação orientada a objetos do projeto, ilustrando os relacionamentos de herança, composição e agregação:
 
-```mermaid
-classDiagram
+```classDiagram
     direction TB
 
     class StatusVisualizacao {
@@ -81,67 +80,100 @@ classDiagram
         SERIE
     }
 
+    class DominioError {
+        <<exception>>
+    }
+    class ValorInvalidoError {
+        <<exception>>
+    }
+    class EstadoInvalidoError {
+        <<exception>>
+    }
+
+    DominioError <|-- ValorInvalidoError
+    DominioError <|-- EstadoInvalidoError
+
+    class AvaliavelMixin {
+        <<mixin>>
+        #float nota
+        +nota() float
+        +avaliar(valor: float) void
+    }
+
+    class SerializavelMixin {
+        <<mixin>>
+        +to_dict() dict
+    }
+
     class Midia {
         <<abstract>>
         #String titulo
         #TipoMidia tipo
         #String genero
         #int ano
-        #String classificacaoIndicativa
+        #String classificacao_indicativa
         #List~String~ elenco
         #StatusVisualizacao status
         #float nota
+        #datetime data_conclusao
         +titulo() String
+        +genero() String
+        +ano() int
+        +tipo() TipoMidia
         +nota() float
         +status() StatusVisualizacao
+        +data_conclusao() datetime
+        +duracao_minutos()* int
         +avaliar(valor: float) void      
-        +alterarStatus(novoStatus: StatusVisualizacao) void
+        +alterar_status(novo_status: StatusVisualizacao) void
         +__str__() String
         +__repr__() String
-        +__eq__(other: Midia) bool
-        +__lt__(other: Midia) bool
+        +__eq__(outro: Object) bool
+        +__lt__(outro: Object) bool
     }
 
     class Filme {
-        -int duracaoMinutos
-        +duracaoMinutos() int
+        -int duracao_minutos
+        +duracao_minutos() int
         +__str__() String
     }
 
     class Serie {
         -List~Temporada~ temporadas
-        +duracaoMinutos() int
+        +duracao_minutos() int
         +nota() float
-        +atualizarStatus() void
-        +adicionarTemporada(temporada: Temporada) void
+        +atualizar_status() void
+        +adicionar_temporada(temporada: Temporada) void
         +__len__() int
+        +__str__() String
     }
 
     class Temporada {
         -int numero
         -List~Episodio~ episodios
         +numero() int
-        +duracaoMinutos() int
-        +adicionarEpisodio(episodio: Episodio) void
-        +calcularNotaMedia() float
+        +duracao_minutos() int
+        +adicionar_episodio(episodio: Episodio) void
+        +calcular_nota_media() float
+        +__len__() int
     }
 
     class Episodio {
-        -int numeroTemporada
-        -int numeroEpisodio
+        -int numero_temporada
+        -int numero_episodio
         -String titulo
-        -int duracaoMinutos
-        -Date dataLancamento
+        -int duracao_minutos
+        -date data_lancamento
         -StatusVisualizacao status
         -float nota
         +titulo() String
-        +numeroTemporada() int
-        +numeroEpisodio() int
-        +duracaoMinutos() int
+        +numero_temporada() int
+        +numero_episodio() int
+        +duracao_minutos() int
         +status() StatusVisualizacao
         +nota() float
         +avaliar(valor: float) void
-        +alterarStatus(novoStatus: StatusVisualizacao) void
+        +alterar_status(novo_status: StatusVisualizacao) void
     }
 
     class Usuario {
@@ -150,62 +182,28 @@ classDiagram
         -String email
         -List~ListaPersonalizada~ listas
         -List~RegistroHistorico~ historico
-        +criarLista(nome: String) ListaPersonalizada
-        +adicionarFavorito(midia: Midia) void
+        +criar_lista(nome: String) ListaPersonalizada
+        +adicionar_favorito(midia: Midia) void
     }
 
     class ListaPersonalizada {
         -String nome
         -List~Midia~ midias
-        +adicionarMidia(midia: Midia) void
-        +removerMidia(midia: Midia) void
-    }
-
-    class InterfaceFastAPI {
-        +post_midia() String
-        +put_avaliar() String
-        +get_listar() List~Midia~
-        +get_relatorios() Map
-        +put_atualizar_status_serie() String
-        +post_lista_usuario() String
-    }
-
-
-    class GerenciadorDados {
-        -String caminhoArquivo
-        +salvarDados(usuarios: List~Usuario~, midias: List~Midia~) void
-        +carregarDados() Map
+        +adicionar_midia(midia: Midia) void
+        +remover_midia(midia: Midia) void
     }
 
     class RegistroHistorico {
-        -DateTime dataHora
+        -datetime data_hora
         -Midia midia
-        +dataHora() DateTime
-        +midia() Midia
+        +data_hora() datetime
     }
 
-    class Configuracao {
-        -float notaMinimaRecomendado
-        -int limiteListasPorUsuario
-        -float multiplicadorDuracao
-        +notaMinimaRecomendado() float
-        +limiteListasPorUsuario() int
-        +multiplicadorDuracao() float
-        +carregarSettings(caminho: String) Configuracao
-    }
-
-    class RelatorioService {
-        +mediaNotasPorGenero(midias: List~Midia~) Map
-        +tempoTotalAssistido(midias: List~Midia~, multiplicador: float) float
-        +top10MaisAvaliados(midias: List~Midia~) List~Midia~
-        +seriesComMaisEpisodiosAssistidos(series: List~Serie~) List~Serie~
-    }
-
-    %% Relacionamentos de Herança
+    %% Herança e Mixins
     Midia <|-- Filme : Herança
     Midia <|-- Serie : Herança
 
-    %% Agregação e Composição de Séries
+    %% Agregação e Composição
     Serie "1" o-- "*" Temporada : Agrega
     Temporada "1" *-- "*" Episodio : Contém (Composição)
 
@@ -214,23 +212,31 @@ classDiagram
     Midia --> StatusVisualizacao : possui
     Episodio --> StatusVisualizacao : possui
 
-    %% Relacionamentos de Usuário
+    %% Relacionamentos do Usuário
     Usuario "1" *-- "*" ListaPersonalizada : gerencia
     Usuario "1" *-- "*" RegistroHistorico : registra
     ListaPersonalizada "*" o-- "*" Midia : agrupa
     RegistroHistorico --> Midia : refere-se
 
-    %% Relacionamentos da API e Banco de Dados
-    InterfaceFastAPI --> Usuario : gerencia requisições
-    InterfaceFastAPI --> Midia : gerencia requisições
-    InterfaceFastAPI --> RelatorioService : consome
-    GerenciadorDados ..> Usuario : salva/carrega
-    GerenciadorDados ..> Midia : salva/carrega
-
-    %% Serviços e Configurações
-    RelatorioService ..> Midia : analisa
-    RelatorioService ..> Configuracao : consulta
-
 ```
 
 
+## 🛠️ Como Executar o Projeto
+
+### Pré-requisitos
+* Python 3.10+
+
+### Instalação
+1. Clone o repositório:
+   ```bash
+   git clone <URL_DO_REPOSITORIO>
+   cd catalogo-de-filmes-e-series
+   ```
+   
+   
+## 🧪 Executando os Testes Automatizados
+
+Para rodar a suíte de testes com o `pytest`, execute:
+```bash
+py -m pytest -v
+```
