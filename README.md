@@ -64,7 +64,8 @@ catalogo_filmes/
 
 Abaixo encontra-se a representação da modelação orientada a objetos do projeto, ilustrando os relacionamentos de herança, composição e agregação:
 
-```classDiagram
+```mermaid
+classDiagram
     direction TB
 
     class StatusVisualizacao {
@@ -229,7 +230,7 @@ Abaixo encontra-se a representação da modelação orientada a objetos do proje
 ### Instalação
 1. Clone o repositório:
    ```bash
-   git clone <URL_DO_REPOSITORIO>
+   git clone https://github.com/edson-santos0077/catalogo-de-filmes-e-series.git
    cd catalogo-de-filmes-e-series
    ```
    
