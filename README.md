@@ -32,22 +32,30 @@ A arquitetura do projeto está organizada em camadas, separando a interface, as 
 catalogo_filmes/
 │
 ├── main.py                  # Ponto de entrada da aplicação FastAPI
-├── dados.py                 # Módulo de persistência 
+├── dados.py                 # Módulo de persistência
 ├── settings.json            # Arquivo de configurações
 ├── README.md                # Arquivo com documentação e diagrama Mermaid
 ├── requirements.txt         # Dependências do projeto
 │
 ├── api/                     # Camada de Interface (FastAPI)
 │   ├── __init__.py
-│   └── rotas.py             
+│   ├── rotas_midias.py      # Endpoints para filmes e séries
+│   ├── rotas_usuarios.py    # Endpoints para listas e histórico
+│   └── schemas.py           # Classes Pydantic (validação de entrada/saída HTTP)
 │
 ├── models/                  # Camada de Domínio (Classes principais)
 │   ├── __init__.py
 │   ├── enums.py             # StatusVisualizacao e TipoMidia
-│   ├── exceptions.py        # Exceções customizadas (ValorInvalidoError, etc.)
+│   ├── exceptions.py        # Exceções customizadas
 │   ├── mixins.py            # AvaliavelMixin e SerializavelMixin
-│   ├── midia.py             # Midia, Filme, Serie, Temporada, Episodio
+│   ├── midia.py             # Midia e Filme
+│   ├── serie.py             # Serie, Temporada e Episodio
 │   └── usuario.py           # Usuario, ListaPersonalizada, RegistroHistorico
+│
+├── repositories/            # Camada de Persistência (Interação com SQLite)
+│   ├── __init__.py
+│   ├── midia_repository.py  # Funções CRUD para Midia/Filme/Serie
+│   └── usuario_repository.py# Funções CRUD para Usuários e Listas
 │
 ├── services/                # Camada de Regras de Negócio
 │   ├── __init__.py
@@ -56,6 +64,8 @@ catalogo_filmes/
 │
 └── tests/                   # Diretório de testes automatizados (pytest)
     ├── __init__.py
+    ├── conftest.py          # Fixtures do banco de dados em memória para testes
+    ├── test_api.py          # Testes de integração dos endpoints
     ├── test_midia.py        # Testes das regras de negócio de Mídias/Episódios
     └── test_relatorios.py   # Testes dos cálculos matemáticos
 ```
@@ -125,7 +135,7 @@ classDiagram
         +status() StatusVisualizacao
         +data_conclusao() datetime
         +duracao_minutos()* int
-        +avaliar(valor: float) void      
+        +avaliar(valor: float) void
         +alterar_status(novo_status: StatusVisualizacao) void
         +__str__() String
         +__repr__() String
@@ -233,8 +243,8 @@ classDiagram
    git clone https://github.com/edson-santos0077/catalogo-de-filmes-e-series.git
    cd catalogo-de-filmes-e-series
    ```
-   
-   
+
+
 ## 🧪 Executando os Testes Automatizados
 
 Para rodar a suíte de testes com o `pytest`, execute:

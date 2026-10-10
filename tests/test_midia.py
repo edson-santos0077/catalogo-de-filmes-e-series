@@ -128,3 +128,4 @@ def test_ordenacao_midias_por_nota():
     f2.avaliar(9.0)
 
     assert f1 < f2
+    
