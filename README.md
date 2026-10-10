@@ -78,6 +78,41 @@ Abaixo encontra-se a representação da modelação orientada a objetos do proje
 classDiagram
     direction TB
 
+    %% ==========================================
+    %% CAMADA DE INTERFACE (FASTAPI)
+    %% ==========================================
+    class RotasAPI {
+        <<Router - FastAPI>>
+        +criar_midia(payload: MidiaSchemaCreate)
+        +listar_midias()
+        +obter_relatorios()
+    }
+
+    class MidiaSchemaCreate {
+        <<Pydantic Schema>>
+        +titulo: str
+        +tipo: str
+        +ano: int
+        +duracao_minutos: int
+    }
+
+    %% ==========================================
+    %% CAMADA DE PERSISTÊNCIA (SQLITE / ORM)
+    %% ==========================================
+    class MidiaRepository {
+        <<Repository>>
+        -db_session: Session
+        +salvar(midia: Midia)
+        +buscar_por_id(id: int) Midia
+    }
+
+    class ORMBase {
+        <<SQLAlchemy / SQLModel Base>>
+    }
+
+    %% ==========================================
+    %% ENUMS E EXCEÇÕES DE DOMÍNIO
+    %% ==========================================
     class StatusVisualizacao {
         <<enumeration>>
         NAO_ASSISTIDO
@@ -91,23 +126,20 @@ classDiagram
         SERIE
     }
 
-    class DominioError {
-        <<exception>>
-    }
-    class ValorInvalidoError {
-        <<exception>>
-    }
-    class EstadoInvalidoError {
-        <<exception>>
-    }
+    class DominioError { <<exception>> }
+    class ValorInvalidoError { <<exception>> }
+    class EstadoInvalidoError { <<exception>> }
 
     DominioError <|-- ValorInvalidoError
     DominioError <|-- EstadoInvalidoError
 
+    %% ==========================================
+    %% MIXINS
+    %% ==========================================
     class AvaliavelMixin {
         <<mixin>>
-        #float nota
-        +nota() float
+        -_nota: float | None
+        +nota() float | None
         +avaliar(valor: float) void
     }
 
@@ -116,27 +148,30 @@ classDiagram
         +to_dict() dict
     }
 
+    %% ==========================================
+    %% CAMADA DE DOMÍNIO (MAPEADA NO ORM)
+    %% ==========================================
     class Midia {
-        <<abstract>>
-        #String titulo
-        #TipoMidia tipo
-        #String genero
-        #int ano
-        #String classificacao_indicativa
-        #List~String~ elenco
-        #StatusVisualizacao status
-        #float nota
-        #datetime data_conclusao
+        <<abstract / ORM Model>>
+        -_titulo: String
+        -_tipo: TipoMidia
+        -_genero: String
+        -_ano: int
+        -classificacao_indicativa: String
+        -_elenco: List~String~
+        -_status: StatusVisualizacao
+        -_data_conclusao: datetime | None
         +titulo() String
         +genero() String
         +ano() int
         +tipo() TipoMidia
-        +nota() float
+        +elenco() List~String~
+        +data_conclusao() datetime | None
         +status() StatusVisualizacao
-        +data_conclusao() datetime
         +duracao_minutos()* int
-        +avaliar(valor: float) void
-        +alterar_status(novo_status: StatusVisualizacao) void
+        +alterar_status(novo_status: StatusVisualizacao) void <<@registrar_evento>>
+        +from_dict(dados: dict)$ Midia
+        +converter_minutos_para_horas(minutos: int, multiplicador: float)$ float
         +__str__() String
         +__repr__() String
         +__eq__(outro: Object) bool
@@ -144,15 +179,17 @@ classDiagram
     }
 
     class Filme {
-        -int duracao_minutos
+        <<ORM Model>>
+        -_duracao_minutos: int
         +duracao_minutos() int
         +__str__() String
     }
 
     class Serie {
-        -List~Temporada~ temporadas
+        <<ORM Model>>
+        -temporadas: List~Temporada~
         +duracao_minutos() int
-        +nota() float
+        +nota() float | None
         +atualizar_status() void
         +adicionar_temporada(temporada: Temporada) void
         +__len__() int
@@ -160,74 +197,100 @@ classDiagram
     }
 
     class Temporada {
-        -int numero
-        -List~Episodio~ episodios
+        <<ORM Model>>
+        -_numero: int
+        -episodios: List~Episodio~
         +numero() int
         +duracao_minutos() int
         +adicionar_episodio(episodio: Episodio) void
-        +calcular_nota_media() float
+        +calcular_nota_media() float | None
         +__len__() int
+        +__repr__() String
+        +__str__() String
     }
 
     class Episodio {
-        -int numero_temporada
-        -int numero_episodio
-        -String titulo
-        -int duracao_minutos
-        -date data_lancamento
-        -StatusVisualizacao status
-        -float nota
+        <<ORM Model>>
+        -_numero_temporada: int
+        -_numero_episodio: int
+        -_titulo: String
+        -_duracao_minutos: int
+        -_data_lancamento: date | None
+        -_status: StatusVisualizacao
         +titulo() String
         +numero_temporada() int
         +numero_episodio() int
         +duracao_minutos() int
+        +data_lancamento() date | None
         +status() StatusVisualizacao
-        +nota() float
-        +avaliar(valor: float) void
-        +alterar_status(novo_status: StatusVisualizacao) void
+        +alterar_status(novo_status: StatusVisualizacao) void <<@registrar_evento>>
+        +__repr__() String
+        +__str__() String
     }
 
     class Usuario {
-        -String id
-        -String nome
-        -String email
-        -List~ListaPersonalizada~ listas
-        -List~RegistroHistorico~ historico
+        <<ORM Model>>
+        -id_usuario: String
+        -nome: String
+        -email: String
         +criar_lista(nome: String) ListaPersonalizada
         +adicionar_favorito(midia: Midia) void
     }
 
     class ListaPersonalizada {
-        -String nome
-        -List~Midia~ midias
+        <<ORM Model>>
+        -nome: String
         +adicionar_midia(midia: Midia) void
         +remover_midia(midia: Midia) void
     }
 
     class RegistroHistorico {
-        -datetime data_hora
-        -Midia midia
+        <<ORM Model>>
+        -midia: Midia
+        -data_hora: datetime
         +data_hora() datetime
     }
 
-    %% Herança e Mixins
-    Midia <|-- Filme : Herança
-    Midia <|-- Serie : Herança
+    %% ==========================================
+    %% RELACIONAMENTOS DE HERANÇA E ORM
+    %% ==========================================
+    ORMBase <|-- Midia : Herda
+    ORMBase <|-- Temporada : Herda
+    ORMBase <|-- Episodio : Herda
+    ORMBase <|-- Usuario : Herda
+    ORMBase <|-- ListaPersonalizada : Herda
+    ORMBase <|-- RegistroHistorico : Herda
 
-    %% Agregação e Composição
+    Midia <|-- Filme : Herança (Polimorfismo)
+    Midia <|-- Serie : Herança (Polimorfismo)
+
+    AvaliavelMixin <|-- Midia : Utiliza
+    SerializavelMixin <|-- Midia : Utiliza
+    AvaliavelMixin <|-- Episodio : Utiliza
+    SerializavelMixin <|-- Episodio : Utiliza
+
+    %% ==========================================
+    %% RELACIONAMENTOS DE ASSOCIAÇÃO
+    %% ==========================================
     Serie "1" o-- "*" Temporada : Agrega
     Temporada "1" *-- "*" Episodio : Contém (Composição)
+    Usuario "1" *-- "*" ListaPersonalizada : gerencia
+    Usuario "1" *-- "*" RegistroHistorico : registra
+    ListaPersonalizada "*" o-- "*" Midia : agrupa
+    RegistroHistorico --> Midia : refere-se
 
     %% Uso de Enums
     Midia --> TipoMidia : possui
     Midia --> StatusVisualizacao : possui
     Episodio --> StatusVisualizacao : possui
 
-    %% Relacionamentos do Usuário
-    Usuario "1" *-- "*" ListaPersonalizada : gerencia
-    Usuario "1" *-- "*" RegistroHistorico : registra
-    ListaPersonalizada "*" o-- "*" Midia : agrupa
-    RegistroHistorico --> Midia : refere-se
+    %% ==========================================
+    %% FLUXO DOS FRAMEWORKS EXTERNOS
+    %% ==========================================
+    RotasAPI ..> MidiaSchemaCreate : Valida JSON
+    RotasAPI --> MidiaRepository : Solicita Operações
+    MidiaRepository --> Midia : Persiste no SQLite
+
 
 ```
 
