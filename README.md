@@ -58,6 +58,7 @@ catalogo_filmes/
 │   │   ├── __init__.py
 │   │   ├── enums.py
 │   │   ├── exceptions.py
+│   │   ├── filme.py
 │   │   ├── mixins.py
 │   │   ├── midia.py
 │   │   ├── serie.py
