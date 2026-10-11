@@ -31,43 +31,54 @@ A arquitetura do projeto está organizada em camadas, separando a interface, as 
 ```
 catalogo_filmes/
 │
-├── main.py                  # Ponto de entrada da aplicação FastAPI
-├── dados.py                 # Módulo de persistência
-├── settings.json            # Arquivo de configurações
-├── README.md                # Arquivo com documentação e diagrama Mermaid
-├── requirements.txt         # Dependências do projeto
+├── data/                        # Arquivos locais e de persistência
+│   └── catalogo.db              # Arquivo do banco de dados SQLite (gerado automaticamente)
 │
-├── api/                     # Camada de Interface (FastAPI)
-│   ├── __init__.py
-│   ├── rotas_midias.py      # Endpoints para filmes e séries
-│   ├── rotas_usuarios.py    # Endpoints para listas e histórico
-│   └── schemas.py           # Classes Pydantic (validação de entrada/saída HTTP)
+├── docs/                        # Documentação do projeto
+│   └── README.md                # Documentação principal e diagramas Mermaid
 │
-├── models/                  # Camada de Domínio (Classes principais)
-│   ├── __init__.py
-│   ├── enums.py             # StatusVisualizacao e TipoMidia
-│   ├── exceptions.py        # Exceções customizadas
-│   ├── mixins.py            # AvaliavelMixin e SerializavelMixin
-│   ├── midia.py             # Midia e Filme
-│   ├── serie.py             # Serie, Temporada e Episodio
-│   └── usuario.py           # Usuario, ListaPersonalizada, RegistroHistorico
+├── requirements.txt             # Dependências do projeto (FastAPI, SQLAlchemy, etc.)
+├── .gitignore                   # Ficheiros ignorados pelo Git (.env, __pycache__, catalogo.db)
 │
-├── repositories/            # Camada de Persistência (Interação com SQLite)
-│   ├── __init__.py
-│   ├── midia_repository.py  # Funções CRUD para Midia/Filme/Serie
-│   └── usuario_repository.py# Funções CRUD para Usuários e Listas
+├── src/                         # Código-fonte da aplicação (Encapsulamento)
+│   ├── main.py                  # Ponto de entrada do FastAPI (agora protegido dentro de src)
+│   │
+│   ├── api/                     # Camada de Interface (Rotas HTTP)
+│   │   ├── __init__.py
+│   │   ├── rotas_midias.py
+│   │   ├── rotas_usuarios.py
+│   │   └── schemas.py           # Validações Pydantic
+│   │
+│   ├── core/                    # Configurações globais do sistema
+│   │   ├── __init__.py
+│   │   ├── configuracao.py      # Lógica para ler e validar o settings.json
+│   │   └── settings.json        # Arquivo de parâmetros dinâmicos
+│   │
+│   ├── models/                  # Camada de Domínio (As suas classes POO)
+│   │   ├── __init__.py
+│   │   ├── enums.py
+│   │   ├── exceptions.py
+│   │   ├── mixins.py
+│   │   ├── midia.py
+│   │   ├── serie.py
+│   │   └── usuario.py
+│   │
+│   ├── repositories/            # Camada de Acesso a Dados
+│   │   ├── __init__.py
+│   │   ├── database.py          # Configuração do ORM e conexão SQLite (substitui o antigo dados.py solto)
+│   │   ├── midia_repository.py
+│   │   └── usuario_repository.py
+│   │
+│   └── services/                # Regras de Negócio e Casos de Uso
+│       ├── __init__.py
+│       └── relatorio.py         # Cálculos de médias e estatísticas
 │
-├── services/                # Camada de Regras de Negócio
-│   ├── __init__.py
-│   ├── relatorio.py         # RelatorioService (Cálculos de médias e top 10)
-│   └── configuracao.py      # Classe Configuracao (Lê o settings.json)
-│
-└── tests/                   # Diretório de testes automatizados (pytest)
+└── tests/
     ├── __init__.py
-    ├── conftest.py          # Fixtures do banco de dados em memória para testes
-    ├── test_api.py          # Testes de integração dos endpoints
-    ├── test_midia.py        # Testes das regras de negócio de Mídias/Episódios
-    └── test_relatorios.py   # Testes dos cálculos matemáticos
+    ├── conftest.py              # Fixtures globais (ex: banco SQLite em memória para os testes)
+    ├── test_api.py              # Testes de integração dos endpoints
+    ├── test_midia.py            # Testes unitários puros das classes (sem banco de dados)
+    └── test_relatorios.py       # Testes da lógica de relatórios
 ```
 
 ## 📊 Diagrama de Classes (UML)
