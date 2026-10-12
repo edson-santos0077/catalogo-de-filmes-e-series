@@ -1,11 +1,12 @@
 from datetime import date
 
 from models.enums import StatusVisualizacao, TipoMidia
-from models.exceptions import EstadoInvalidoError, ValorInvalidoError
+from models.exceptions import ValorInvalidoError
 from models.midia import Midia
+from models.mixins import AvaliavelMixin, SerializavelMixin
 
 
-class Episodio:
+class Episodio(AvaliavelMixin, SerializavelMixin):
     """Representa um episódio individual pertencente a uma temporada.
 
     Entidade autônoma agregada por Temporada, responsável por gerenciar
@@ -13,13 +14,13 @@ class Episodio:
     status individual de visualização.
 
     Attributes:
-        numero_temporada (int): Número identificador da temporada (deve ser > 0).
-        numero_episodio (int): Número sequencial do episódio (deve ser > 0).
-        titulo (str): Nome/título do episódio (não pode ser vazio).
-        duracao_minutos (int): Duração do episódio em minutos (deve ser > 0).
-        data_lancamento (Optional[date]): Data oficial de exibição ou lançamento.
-        status (StatusVisualizacao): Estado de visualização do episódio (leitura).
-        nota (Optional[float]): Avaliação individual entre 0.0 e 10.0 (leitura).
+            numero_temporada (int): Número identificador da temporada (deve ser > 0).
+            numero_episodio (int): Número sequencial do episódio (deve ser > 0).
+            titulo (str): Nome/título do episódio (não pode ser vazio).
+            duracao_minutos (int): Duração do episódio em minutos (deve ser > 0).
+            data_lancamento (Optional[date]): Data oficial de exibição ou lançamento.
+            status (StatusVisualizacao): Estado de visualização do episódio (leitura).
+            nota (Optional[float]): Avaliação individual entre 0.0 e 10.0 (leitura).
     """
 
     def __init__(
@@ -30,13 +31,13 @@ class Episodio:
         duracao_minutos: int,
         data_lancamento: date | str | None = None,
     ):
+        super().__init__()
         self.numero_temporada = numero_temporada
         self.numero_episodio = numero_episodio
         self.titulo = titulo
         self.duracao_minutos = duracao_minutos
         self.data_lancamento = data_lancamento
         self._status = StatusVisualizacao.NAO_ASSISTIDO
-        self._nota: float | None = None
 
     @property
     def data_lancamento(self) -> date | None:
@@ -104,15 +105,6 @@ class Episodio:
     def status(self) -> StatusVisualizacao:
         return self._status
 
-    @property
-    def nota(self) -> float | None:
-        return self._nota
-
-    def avaliar(self, valor: float) -> None:
-        if not (0 <= valor <= 10):
-            raise EstadoInvalidoError("A nota do episódio deve estar entre 0 e 10.")
-        self._nota = float(valor)
-
     def alterar_status(self, novo_status: StatusVisualizacao) -> None:
         self._status = novo_status
 
@@ -123,18 +115,19 @@ class Episodio:
         return f"T{self.numero_temporada:02d}E{self.numero_episodio:02d} - {self.titulo} ({self.duracao_minutos} min) [{self.status.value}]"
 
 
-class Temporada:
+class Temporada(SerializavelMixin):
     """Agrega e gerencia os episódios pertencentes a uma temporada.
 
     Calcula de forma dinâmica a duração total da temporada a partir do somatório
     de seus episódios e computa a média ponderada das avaliações recebidas.
 
     Attributes:
-        numero (int): Número sequencial da temporada (deve ser > 0).
-        episodios (List[Episodio]): Lista contendo os episódios agregados.
+            numero (int): Número sequencial da temporada (deve ser > 0).
+            episodios (List[Episodio]): Lista contendo os episódios agregados.
     """
 
     def __init__(self, numero: int):
+        super().__init__()
         self.numero = numero
         self.episodios: list[Episodio] = []
 
@@ -183,12 +176,12 @@ class Serie(Midia):
     status conforme o progresso dos episódios assistidos.
 
     Attributes:
-        titulo (str): Título principal da série.
-        genero (str): Gênero principal.
-        ano (int): Ano de lançamento ou estreia.
-        classificacao_indicativa (str): Faixa etária recomendada.
-        elenco (Optional[List[str]]): Lista de atores participantes.
-        temporadas (List[Temporada]): Lista de temporadas contidas na série.
+            titulo (str): Título principal da série.
+            genero (str): Gênero principal.
+            ano (int): Ano de lançamento ou estreia.
+            classificacao_indicativa (str): Faixa etária recomendada.
+            elenco (Optional[List[str]]): Lista de atores participantes.
+            temporadas (List[Temporada]): Lista de temporadas contidas na série.
     """
 
     def __init__(
@@ -223,20 +216,22 @@ class Serie(Midia):
             return self._nota
         return sum(notas_validas) / len(notas_validas)
 
-    def atualizar_status(self) -> None:
+   def atualizar_status(self) -> None:
         todos_episodios = [ep for t in self.temporadas for ep in t.episodios]
         if not todos_episodios:
             return
 
+        # Agora usamos self.alterar_status() para garantir que a data de conclusão
+        # seja registada automaticamente pela classe pai (Midia)
         if all(ep.status == StatusVisualizacao.ASSISTIDO for ep in todos_episodios):
-            self._status = StatusVisualizacao.ASSISTIDO
+            self.alterar_status(StatusVisualizacao.ASSISTIDO)
         elif any(
             ep.status in (StatusVisualizacao.ASSISTIDO, StatusVisualizacao.ASSISTINDO)
             for ep in todos_episodios
         ):
-            self._status = StatusVisualizacao.ASSISTINDO
+            self.alterar_status(StatusVisualizacao.ASSISTINDO)
         else:
-            self._status = StatusVisualizacao.NAO_ASSISTIDO
+            self.alterar_status(StatusVisualizacao.NAO_ASSISTIDO)
 
     def __len__(self) -> int:
         return sum(len(t) for t in self.temporadas)

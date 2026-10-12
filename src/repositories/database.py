@@ -1,43 +1,34 @@
-import sqlite3
+import json
 import os
+import sqlite3
+from abc import ABC, abstractmethod
 
-# Define o caminho do banco de dados na raiz do projeto (ou em uma pasta específica, como /data)
-# 1. Pega o diretório atual onde está o arquivo database.py (src/repositories/)
+from models import Episodio, Filme, Serie, Temporada
+
+# --- 1. CONFIGURAÇÃO DE CAMINHOS ---
 DIRETORIO_ATUAL = os.path.dirname(__file__)
+DB_PATH = os.path.abspath(
+    os.path.join(DIRETORIO_ATUAL, "..", "..", "data", "catalogo.db")
+)
+JSON_PATH = os.path.abspath(
+    os.path.join(DIRETORIO_ATUAL, "..", "..", "data", "catalogo.json")
+)
 
-# 2. Constrói o caminho: sobe para src (..), sobe para a raiz (..), entra em data e aponta para catalogo.db
-DB_PATH = os.path.join(DIRETORIO_ATUAL, '..', '..', 'data', 'catalogo.db')
 
-# 3. Resolve o caminho para ficar limpo (remove os ".." e normaliza o caminho absoluto)
-DB_PATH = os.path.abspath(DB_PATH)
-
+# --- 2. FUNÇÕES AUXILIARES SQLITE ---
 def obter_conexao():
-    """Cria e retorna uma conexão com o banco de dados SQLite."""
     conexao = sqlite3.connect(DB_PATH)
-    # Permite acessar os resultados como dicionários em vez de tuplas numéricas
     conexao.row_factory = sqlite3.Row
     return conexao
 
+
 def inicializar_banco():
-
-    # Cria a pasta 'data' automaticamente caso ela não exista
     os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
-
-    banco_ja_existe = os.path.exists(DB_PATH)
-
-    # Verifica se o arquivo já existe antes de tentar criar as tabelas
-    banco_ja_existe = os.path.exists(DB_PATH)
-
-
-    if banco_ja_existe: # Se já existe, não precisa criar o db
+    if os.path.exists(DB_PATH):
         return
-
-    #Cria as tabelas necessárias se elas não existirem
     conexao = obter_conexao()
     cursor = conexao.cursor()
-
-    # Exemplo: Criação da tabela de mídias (Filmes e Séries)
-    cursor.execute('''
+    cursor.execute("""
         CREATE TABLE IF NOT EXISTS midias (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             titulo TEXT NOT NULL,
@@ -50,12 +41,89 @@ def inicializar_banco():
             nota REAL,
             data_conclusao TEXT
         )
-    ''')
-
-    # Você adicionaria outros CREATE TABLE aqui (ex: episodios, usuarios, listas)
-
+    """)
     conexao.commit()
     conexao.close()
 
-# Executa a inicialização ao importar o módulo, garantindo que o banco exista
-inicializar_banco()
+
+# --- 3. CONTRATO (INTERFACE) ---
+class MidiaRepository(ABC):
+    """Interface base para repositórios de mídia."""
+
+    @abstractmethod
+    def salvar_todos(self, midias: list) -> None:
+        pass
+
+    @abstractmethod
+    def carregar_todos(self) -> list:
+        pass
+
+
+# --- 4. IMPLEMENTAÇÃO JSON ---
+class MidiaRepositoryJSON(MidiaRepository):
+    """Repositório persistindo em arquivo .json"""
+
+    def __init__(self):
+        self.caminho = JSON_PATH
+        os.makedirs(os.path.dirname(self.caminho), exist_ok=True)
+
+    def salvar_todos(self, midias: list) -> None:
+        dados_completos = []
+        for midia in midias:
+            dict_midia = midia.to_dict()
+            if isinstance(midia, Serie):
+                dict_midia["temporadas"] = []
+                for temporada in midia.temporadas:
+                    dict_temp = temporada.to_dict()
+                    dict_temp["episodios"] = [
+                        ep.to_dict() for ep in temporada.episodios
+                    ]
+                    dict_midia["temporadas"].append(dict_temp)
+            dados_completos.append(dict_midia)
+
+        with open(self.caminho, "w", encoding="utf-8") as f:
+            json.dump(dados_completos, f, indent=4, ensure_ascii=False)
+
+    def carregar_todos(self) -> list:
+        if not os.path.exists(self.caminho):
+            return []
+
+        with open(self.caminho, "r", encoding="utf-8") as f:
+            try:
+                dados_brutos = json.load(f)
+            except json.JSONDecodeError:
+                return []
+
+        midias_carregadas = []
+        for dados in dados_brutos:
+            tipo = dados.get("tipo")
+            if tipo == "FILME":
+                midias_carregadas.append(Filme.from_dict(dados))
+            elif tipo == "SERIE":
+                dados_temporadas = dados.pop("temporadas", [])
+                serie = Serie.from_dict(dados)
+                for dados_temp in dados_temporadas:
+                    dados_episodios = dados_temp.pop("episodios", [])
+                    temporada = Temporada.from_dict(dados_temp)
+                    for dados_ep in dados_episodios:
+                        temporada.adicionar_episodio(Episodio.from_dict(dados_ep))
+                    serie.adicionar_temporada(temporada)
+                midias_carregadas.append(serie)
+
+        return midias_carregadas
+
+
+# --- 5. IMPLEMENTAÇÃO SQLITE ---
+class MidiaRepositorySQLite(MidiaRepository):
+    """Repositório persistindo em banco relacional .db"""
+
+    def __init__(self):
+        inicializar_banco()
+
+    def salvar_todos(self, midias: list) -> None:
+        # A implementar nas próximas semanas (DELETE inicial + INSERTs)
+        pass
+
+    def carregar_todos(self) -> list:
+        # A implementar nas próximas semanas (SELECTs com JOIN)
+        return []

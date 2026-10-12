@@ -3,9 +3,10 @@ from datetime import date, datetime
 
 from models.enums import StatusVisualizacao, TipoMidia
 from models.exceptions import EstadoInvalidoError, ValorInvalidoError
+from models.mixins import AvaliavelMixin, SerializavelMixin
 
 
-class Midia(ABC):
+class Midia(AvaliavelMixin, SerializavelMixin, ABC):
     """Representa uma mídia abstrata no catálogo de conteúdos.
 
     Atua como a classe base abstrata (ABC) para todos os tipos de conteúdos
@@ -33,6 +34,7 @@ class Midia(ABC):
         classificacao_indicativa: str,
         elenco: list[str] | None = None,
     ):
+        super().__init__()
         self.titulo = titulo
         self._tipo = tipo
         self.genero = genero
@@ -40,7 +42,6 @@ class Midia(ABC):
         self.classificacao_indicativa = classificacao_indicativa
         self.elenco = elenco or []
         self._status = StatusVisualizacao.NAO_ASSISTIDO
-        self._nota: float | None = None
         self._data_conclusao: datetime | None = None
 
     @property
@@ -78,12 +79,7 @@ class Midia(ABC):
         return self._tipo
 
     @property
-    def nota(self) -> float | None:
-        return self._nota
-
-    @property
     def elenco(self) -> list[str]:
-        """Retorna a lista de nomes do elenco principal."""
         return self._elenco
 
     @elenco.setter
@@ -101,7 +97,6 @@ class Midia(ABC):
 
     @property
     def data_conclusao(self) -> datetime | None:
-        """Retorna a data e hora em que a mídia foi concluída."""
         return self._data_conclusao
 
     @data_conclusao.setter
@@ -111,7 +106,6 @@ class Midia(ABC):
         elif isinstance(valor, datetime):
             self._data_conclusao = valor
         elif isinstance(valor, date):
-            # Converte date para datetime (no início do dia)
             self._data_conclusao = datetime.combine(valor, datetime.min.time())
         elif isinstance(valor, str):
             try:
@@ -128,11 +122,6 @@ class Midia(ABC):
     @property
     def status(self) -> StatusVisualizacao:
         return self._status
-
-    def avaliar(self, valor: float) -> None:
-        if not (0 <= valor <= 10):
-            raise ValorInvalidoError("A nota deve estar entre 0 e 10.")
-        self._nota = float(valor)
 
     def alterar_status(self, novo_status: StatusVisualizacao) -> None:
         if not isinstance(novo_status, StatusVisualizacao):
@@ -170,3 +159,25 @@ class Midia(ABC):
 
     def __str__(self) -> str:
         return f"{self.titulo} ({self.ano}) - {self.genero} [{self.status.value}]"
+
+    @staticmethod
+    def converter_minutos_para_horas(
+        minutos: int, multiplicador: float = 1.0, casas_decimais: int = 2
+    ) -> float:
+        """Converte minutos para horas, com multiplicador e arredondamento configuráveis.
+
+        Args:
+            minutos (int): A duração em minutos.
+            multiplicador (float, opcional): Fator de multiplicação (ex: 1.5 para velocidade maior).
+            casas_decimais (int, opcional): Quantidade de casas para o arredondamento. Padrão é 2.
+
+        Returns:
+            float: A duração calculada e arredondada em horas.
+        """
+        if minutos < 0:
+            raise ValorInvalidoError("Os minutos não podem ser negativos.")
+        if multiplicador < 0:
+            raise ValorInvalidoError("O multiplicador não pode ser negativo.")
+
+        horas_calculadas = (minutos / 60.0) * multiplicador
+        return round(horas_calculadas, casas_decimais)
