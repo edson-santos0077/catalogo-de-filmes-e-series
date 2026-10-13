@@ -1,11 +1,14 @@
-import pytest
 from datetime import datetime
-from models.enums import StatusVisualizacao, TipoMidia
-from models.exceptions import ValorInvalidoError, EstadoInvalidoError
-from models.midia import Filme, Serie, Temporada, Episodio
 
+import pytest
+
+# Substitua a linha 4 atual por esta:
+from models import Episodio, Filme, Serie, Temporada
+from models.enums import StatusVisualizacao, TipoMidia
+from models.exceptions import ValorInvalidoError
 
 # --- TESTES DE FILME E VALIDAÇÕES BASE ---
+
 
 def test_criacao_filme_valido():
     filme = Filme("Inception", "Sci-Fi", 2010, "14", 148, ["Leonardo DiCaprio"])
@@ -37,12 +40,19 @@ def test_validacao_nota_fora_do_intervalo():
         filme.avaliar(11.0)
 
 
+def test_validacao_nota_negativa():
+    filme = Filme("Matrix", "Sci-Fi", 1999, "14", 136)
+    with pytest.raises(ValorInvalidoError):
+        filme.avaliar(-1.0)
+
+
 # --- TESTES DE DATA DE CONCLUSÃO E STATUS ---
+
 
 def test_atualizacao_automatica_data_conclusao():
     filme = Filme("Interstellar", "Sci-Fi", 2014, "10", 169)
     filme.alterar_status(StatusVisualizacao.ASSISTIDO)
-    
+
     assert filme.status == StatusVisualizacao.ASSISTIDO
     assert isinstance(filme.data_conclusao, datetime)
 
@@ -51,11 +61,12 @@ def test_remocao_data_conclusao_ao_mudar_status():
     filme = Filme("Interstellar", "Sci-Fi", 2014, "10", 169)
     filme.alterar_status(StatusVisualizacao.ASSISTIDO)
     filme.alterar_status(StatusVisualizacao.NAO_ASSISTIDO)
-    
+
     assert filme.data_conclusao is None
 
 
 # --- TESTES DE SÉRIE, TEMPORADA E EPISÓDIO ---
+
 
 def test_estrutura_serie_temporada_episodio():
     serie = Serie("Breaking Bad", "Drama", 2008, "18")
@@ -69,6 +80,14 @@ def test_estrutura_serie_temporada_episodio():
 
     assert len(serie) == 2  # __len__ calcula o total de episódios
     assert serie.duracao_minutos == 106
+
+
+def test_adicionar_objeto_invalido_na_temporada():
+    temp1 = Temporada(1)
+
+    # O pytest vai esperar que a próxima linha dê um erro do tipo TypeError
+    with pytest.raises(TypeError):
+        temp1.adicionar_episodio("Isto é uma string, não um episódio")
 
 
 def test_atualizacao_automatica_status_serie():
@@ -113,6 +132,7 @@ def test_calculo_nota_media_serie():
 
 
 # --- TESTES DE MÉTODOS ESPECIAIS (__eq__ e __lt__) ---
+
 
 def test_comparacao_igualdade_midias():
     f1 = Filme("Duna", "Sci-Fi", 2021, "14", 155)

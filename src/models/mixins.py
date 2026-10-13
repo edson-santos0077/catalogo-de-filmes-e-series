@@ -4,7 +4,7 @@ Fornece comportamentos transversais (como avaliação e serialização) que pode
 ser incorporados por diferentes classes da hierarquia sem duplicar código.
 """
 
-from typing import Optional
+from models.enums import Enum
 from models.exceptions import ValorInvalidoError
 
 
@@ -22,12 +22,20 @@ class AvaliavelMixin:
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self._nota: Optional[float] = None
+        self._nota: float | None = None
 
     @property
-    def nota(self) -> Optional[float]:
+    def nota(self) -> float | None:
         """Retorna a nota individual atribuída ao objeto."""
         return self._nota
+
+    @nota.setter
+    def nota(self, valor: float) -> None:
+        if not isinstance(valor, (int, float)) or isinstance(valor, bool):
+            raise ValorInvalidoError("A nota deve ser um valor numérico.")
+        if not (0 <= valor <= 10):
+            raise ValorInvalidoError("A nota deve estar entre 0.0 e 10.0.")
+        self._nota = round(float(valor), 1)
 
     def avaliar(self, valor: float) -> None:
         """Atribui ou atualiza a nota de avaliação da entidade.
@@ -39,14 +47,9 @@ class AvaliavelMixin:
             ValorInvalidoError: Se o valor fornecido não for do tipo numérico (int/float)
                 ou se estiver fora do intervalo permitido [0.0, 10.0].
         """
-        if not isinstance(valor, (int, float)) or isinstance(valor, bool):
-            raise ValorInvalidoError("A nota deve ser um valor numérico.")
-        if not (0 <= valor <= 10):
-            raise ValorInvalidoError("A nota deve estar entre 0.0 e 10.0.")
-        self._nota = round(float(valor), 1)
-        
-        
-        
+        self.nota = valor  # Delega para o setter que faz a validação
+
+
 class SerializavelMixin:
     """Mixin que confere a capacidade de conversão para estruturas dicionário/JSON.
 
@@ -76,3 +79,20 @@ class SerializavelMixin:
             else:
                 dados[nome_campo] = valor
         return dados
+
+    @classmethod
+    def from_dict(cls, dados: dict):
+        """Cria uma instância da classe a partir de um dicionário de dados.
+
+        Args:
+            dados (dict): Dicionário contendo os atributos da instância.
+
+        Returns:
+            Uma nova instância da classe correspondente.
+        """
+        if not isinstance(dados, dict):
+            raise TypeError("Os dados fornecidos devem ser um dicionário.")
+
+        # O **dados desempacota o dicionário, passando as chaves como
+        # parâmetros nomeados para o __init__ da classe
+        return cls(**dados)
