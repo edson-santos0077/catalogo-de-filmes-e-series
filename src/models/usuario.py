@@ -16,7 +16,7 @@ class ListaPersonalizada(SerializavelMixin):
     def __init__(self, nome: str):
         super().__init__()
         self.nome = nome
-        self._midias: dict[str, Midia] = {}
+        self._midias: dict[int, Midia] = {}
 
     @property
     def nome(self) -> str:
@@ -51,7 +51,7 @@ class ListaPersonalizada(SerializavelMixin):
             raise TypeError(
                 "O objeto a ser adicionado deve ser uma instância de Midia."
             )
-        if not midia.id:
+        if midia.id is None:
             raise ValorInvalidoError("A mídia deve possuir um ID válido.")
 
         if midia.id in self._midias:
@@ -73,7 +73,8 @@ class ListaPersonalizada(SerializavelMixin):
         if not isinstance(midia, Midia):
             raise TypeError("O objeto a ser removido deve ser uma instância de Midia.")
 
-        if midia.id not in self._midias:
+        # Garante que o ID existe e está presente no dicionário
+        if midia.id is None or midia.id not in self._midias:
             raise EstadoInvalidoError(
                 f"A mídia '{midia.titulo}' não se encontra na lista '{self.nome}'."
             )
@@ -83,10 +84,13 @@ class ListaPersonalizada(SerializavelMixin):
         return len(self._midias)
 
     def __contains__(self, item: object) -> bool:
-        if isinstance(item, Midia) and item.id:
+        if isinstance(item, Midia) and item.id is not None:
             return item.id in self._midias
-        if isinstance(item, str):
-            return item in self._midias
+        if isinstance(item, (int, str)):
+            try:
+                return int(item) in self._midias
+            except (ValueError, TypeError):
+                return False
         return False
 
     def __repr__(self) -> str:
@@ -146,9 +150,9 @@ class Usuario(SerializavelMixin):
 
     def __init__(
         self,
-        id_usuario: str,
         nome: str,
         email: str,
+        id_usuario: int | str | None = None,
         limite_listas: int = 10,
     ):
         super().__init__()
@@ -162,15 +166,14 @@ class Usuario(SerializavelMixin):
         self._historico: list[RegistroHistorico] = []
 
     @property
-    def id_usuario(self) -> str:
-        """Retorna o ID do usuário."""
+    def id_usuario(self) -> int | str | None:
         return self._id_usuario
 
     @id_usuario.setter
-    def id_usuario(self, valor: str) -> None:
-        if not valor or not str(valor).strip():
+    def id_usuario(self, valor: int | str | None) -> None:
+        if valor is not None and not str(valor).strip():
             raise ValorInvalidoError("O id_usuario não pode ser vazio.")
-        self._id_usuario = str(valor).strip()
+        self._id_usuario = valor
 
     @property
     def nome(self) -> str:

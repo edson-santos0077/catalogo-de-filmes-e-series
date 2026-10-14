@@ -70,29 +70,29 @@ class SerializavelMixin:
         """
         dados = {}
         for chave, valor in self.__dict__.items():
-            # Remove o underline inicial dos atributos privados/protegidos
             nome_campo = chave.lstrip("_")
-            if isinstance(valor, Enum):  # Caso seja um Enum (ex: StatusVisualizacao)
+            if isinstance(valor, Enum):
                 dados[nome_campo] = valor.value
-            elif hasattr(valor, "isoformat"):  # Caso seja datetime/date
+            elif hasattr(valor, "isoformat"):
                 dados[nome_campo] = valor.isoformat()
+            elif isinstance(valor, list):
+                dados[nome_campo] = [
+                    item.to_dict() if hasattr(item, "to_dict") else item
+                    for item in valor
+                ]
+            elif isinstance(valor, dict):
+                dados[nome_campo] = {
+                    k: v.to_dict() if hasattr(v, "to_dict") else v
+                    for k, v in valor.items()
+                }
             else:
                 dados[nome_campo] = valor
         return dados
 
     @classmethod
     def from_dict(cls, dados: dict):
-        """Cria uma instância da classe a partir de um dicionário de dados.
-
-        Args:
-            dados (dict): Dicionário contendo os atributos da instância.
-
-        Returns:
-            Uma nova instância da classe correspondente.
-        """
+        """Cria uma instância da classe a partir de um dicionário de dados."""
         if not isinstance(dados, dict):
             raise TypeError("Os dados fornecidos devem ser um dicionário.")
 
-        # O **dados desempacota o dicionário, passando as chaves como
-        # parâmetros nomeados para o __init__ da classe
         return cls(**dados)

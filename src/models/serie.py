@@ -1,4 +1,3 @@
-import uuid
 from datetime import date
 
 from models.enums import StatusVisualizacao, TipoMidia
@@ -31,10 +30,10 @@ class Episodio(AvaliavelMixin, SerializavelMixin):
         titulo: str,
         duracao_minutos: int,
         data_lancamento: date | str | None = None,
-        id: str | int | None = None,
+        id: int | None = None,
     ):
         super().__init__()
-        self.id = id or str(uuid.uuid4())
+        self.id = id
         self.numero_temporada = numero_temporada
         self.numero_episodio = numero_episodio
         self.titulo = titulo
@@ -112,14 +111,17 @@ class Episodio(AvaliavelMixin, SerializavelMixin):
         self._status = novo_status
 
     @property
-    def id(self) -> str | int | None:
+    def id(self) -> int | None:
         return self._id
 
     @id.setter
-    def id(self, valor: str | int | None):
-        if valor is not None and not str(valor).strip():
-            raise ValorInvalidoError("O ID do episódio não pode ser vazio.")
-        self._id = str(valor) if valor is not None else None
+    def id(self, valor: int | None):
+        if valor is not None and not isinstance(valor, int):
+            try:
+                valor = int(valor)
+            except (ValueError, TypeError):
+                raise ValorInvalidoError("O ID deve ser um número inteiro válido.")
+        self._id = valor
 
     def __repr__(self) -> str:
         return f"<Episodio(id='{self.id}', T{self.numero_temporada:02d}E{self.numero_episodio:02d} - '{self.titulo}')>"
@@ -204,7 +206,7 @@ class Serie(Midia):
         ano: int,
         classificacao_indicativa: str,
         elenco: list[str] | None = None,
-        id: str | int | None = None,
+        id: int | None = None,
     ):
         super().__init__(
             titulo,

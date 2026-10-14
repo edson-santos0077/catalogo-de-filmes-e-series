@@ -91,12 +91,13 @@ classDiagram
     direction TB
 
     %% ==========================================
-    %% CAMADA DE INTERFACE (FASTAPI)
+    %% CAMADA DE INTERFACE (FASTAPI / ROUTERS)
     %% ==========================================
     class RotasAPI {
         <<Router - FastAPI>>
         +criar_midia(payload: MidiaSchemaCreate)
         +listar_midias()
+        +criar_usuario(payload)
         +obter_relatorios()
     }
 
@@ -104,23 +105,50 @@ classDiagram
         <<Pydantic Schema>>
         +titulo: str
         +tipo: str
+        +genero: str
         +ano: int
         +duracao_minutos: int
     }
 
     %% ==========================================
-    %% CAMADA DE PERSISTÊNCIA (SQLITE / ORM)
+    %% CAMADA DE PERSISTÊNCIA / REPOSITÓRIOS
     %% ==========================================
     class MidiaRepository {
-        <<Repository>>
-        -db_session: Session
-        +salvar(midia: Midia)
-        +buscar_por_id(id: int) Midia
+        <<Interface - ABC>>
+        +salvar_todos(midias: list)* void
+        +carregar_todos()* list
     }
 
-    class ORMBase {
-        <<SQLAlchemy / SQLModel Base>>
+    class MidiaRepositoryJSON {
+        <<Repository>>
+        -caminho: str
+        -_obter_proximo_id(midias: list) int
+        +salvar_todos(midias: list) void
+        +carregar_todos() list
     }
+
+    class MidiaRepositorySQLite {
+        <<Repository>>
+        +salvar_todos(midias: list) void
+        +carregar_todos() list
+    }
+
+    class UsuarioRepository {
+        <<Interface - ABC>>
+        +salvar(usuario: Usuario)* void
+        +carregar(id_usuario: str)* Usuario | None
+    }
+
+    class UsuarioRepositoryJSON {
+        <<Repository>>
+        -caminho: str
+        +salvar(usuario: Usuario) void
+        +carregar(id_usuario: str) Usuario | None
+    }
+
+    MidiaRepository <|-- MidiaRepositoryJSON : Implementa
+    MidiaRepository <|-- MidiaRepositorySQLite : Implementa
+    UsuarioRepository <|-- UsuarioRepositoryJSON : Implementa
 
     %% ==========================================
     %% ENUMS E EXCEÇÕES DE DOMÍNIO
@@ -146,7 +174,7 @@ classDiagram
     DominioError <|-- EstadoInvalidoError
 
     %% ==========================================
-    %% MIXINS
+    %% MIXINS DE DOMÍNIO
     %% ==========================================
     class AvaliavelMixin {
         <<mixin>>
@@ -158,13 +186,15 @@ classDiagram
     class SerializavelMixin {
         <<mixin>>
         +to_dict() dict
+        +from_dict(dados: dict)$ Object
     }
 
     %% ==========================================
-    %% CAMADA DE DOMÍNIO (MAPEADA NO ORM)
+    %% CAMADA DE DOMÍNIO (ENTIDADES POO)
     %% ==========================================
     class Midia {
-        <<abstract / ORM Model>>
+        <<abstract>>
+        -_id: int | None
         -_titulo: String
         -_tipo: TipoMidia
         -_genero: String
@@ -173,6 +203,7 @@ classDiagram
         -_elenco: List~String~
         -_status: StatusVisualizacao
         -_data_conclusao: datetime | None
+        +id() int | None
         +titulo() String
         +genero() String
         +ano() int
@@ -181,8 +212,7 @@ classDiagram
         +data_conclusao() datetime | None
         +status() StatusVisualizacao
         +duracao_minutos()* int
-        +alterar_status(novo_status: StatusVisualizacao) void <<@registrar_evento>>
-        +from_dict(dados: dict)$ Midia
+        +alterar_status(novo_status: StatusVisualizacao) void
         +converter_minutos_para_horas(minutos: int, multiplicador: float)$ float
         +__str__() String
         +__repr__() String
@@ -191,14 +221,12 @@ classDiagram
     }
 
     class Filme {
-        <<ORM Model>>
         -_duracao_minutos: int
         +duracao_minutos() int
         +__str__() String
     }
 
     class Serie {
-        <<ORM Model>>
         -temporadas: List~Temporada~
         +duracao_minutos() int
         +nota() float | None
@@ -209,9 +237,8 @@ classDiagram
     }
 
     class Temporada {
-        <<ORM Model>>
         -_numero: int
-        -episodios: List~Episodio~
+        +episodios: List~Episodio~
         +numero() int
         +duracao_minutos() int
         +adicionar_episodio(episodio: Episodio) void
@@ -222,73 +249,86 @@ classDiagram
     }
 
     class Episodio {
-        <<ORM Model>>
+        -_id: int | None
         -_numero_temporada: int
         -_numero_episodio: int
         -_titulo: String
         -_duracao_minutos: int
         -_data_lancamento: date | None
         -_status: StatusVisualizacao
+        +id() int | None
         +titulo() String
         +numero_temporada() int
         +numero_episodio() int
         +duracao_minutos() int
         +data_lancamento() date | None
         +status() StatusVisualizacao
-        +alterar_status(novo_status: StatusVisualizacao) void <<@registrar_evento>>
+        +alterar_status(novo_status: StatusVisualizacao) void
         +__repr__() String
         +__str__() String
     }
 
     class Usuario {
-        <<ORM Model>>
-        -id_usuario: String
-        -nome: String
-        -email: String
+        -_id_usuario: int | str | None
+        -_nome: String
+        -_email: String
+        -_limite_listas: int
+        -_listas: dict~str, ListaPersonalizada~
+        -_favoritos: ListaPersonalizada
+        -_historico: List~RegistroHistorico~
+        +id_usuario() int | str | None
+        +nome() String
+        +email() String
+        +limite_listas() int
         +criar_lista(nome: String) ListaPersonalizada
+        +obter_lista(nome: String) ListaPersonalizada
         +adicionar_favorito(midia: Midia) void
+        +remover_favorito(midia: Midia) void
+        +registrar_historico(midia: Midia, data_hora: datetime) RegistroHistorico
     }
 
     class ListaPersonalizada {
-        <<ORM Model>>
-        -nome: String
+        -_nome: String
+        -_midias: dict~int, Midia~
+        +nome() String
+        +midias() List~Midia~
         +adicionar_midia(midia: Midia) void
         +remover_midia(midia: Midia) void
+        +__contains__(item: Object) bool
+        +__len__() int
     }
 
     class RegistroHistorico {
-        <<ORM Model>>
-        -midia: Midia
-        -data_hora: datetime
+        -_midia: Midia
+        -_data_hora: datetime
+        +midia() Midia
         +data_hora() datetime
     }
 
     %% ==========================================
-    %% RELACIONAMENTOS DE HERANÇA E ORM
+    %% RELACIONAMENTOS DE HERANÇA E MIXINS
     %% ==========================================
-    ORMBase <|-- Midia : Herda
-    ORMBase <|-- Temporada : Herda
-    ORMBase <|-- Episodio : Herda
-    ORMBase <|-- Usuario : Herda
-    ORMBase <|-- ListaPersonalizada : Herda
-    ORMBase <|-- RegistroHistorico : Herda
-
     Midia <|-- Filme : Herança (Polimorfismo)
     Midia <|-- Serie : Herança (Polimorfismo)
 
-    AvaliavelMixin <|-- Midia : Utiliza
-    SerializavelMixin <|-- Midia : Utiliza
-    AvaliavelMixin <|-- Episodio : Utiliza
-    SerializavelMixin <|-- Episodio : Utiliza
+    AvaliavelMixin <|-- Midia : Herda
+    SerializavelMixin <|-- Midia : Herda
+    AvaliavelMixin <|-- Episodio : Herda
+    SerializavelMixin <|-- Episodio : Herda
+    SerializavelMixin <|-- Temporada : Herda
+    SerializavelMixin <|-- Usuario : Herda
+    SerializavelMixin <|-- ListaPersonalizada : Herda
+    SerializavelMixin <|-- RegistroHistorico : Herda
 
     %% ==========================================
-    %% RELACIONAMENTOS DE ASSOCIAÇÃO
+    %% RELACIONAMENTOS DE ASSOCIAÇÃO E COMPOSIÇÃO
     %% ==========================================
     Serie "1" o-- "*" Temporada : Agrega
     Temporada "1" *-- "*" Episodio : Contém (Composição)
     Usuario "1" *-- "*" ListaPersonalizada : gerencia
     Usuario "1" *-- "*" RegistroHistorico : registra
-    ListaPersonalizada "*" o-- "*" Midia : agrupa
+    Usuario "1" *-- "1" ListaPersonalizada : favoritos
+    ListaPersonalizada "*" o-- "*" Midia : agrupa (dict por id int)
     RegistroHistorico --> Midia : refere-se
 
     %% Uso de Enums
@@ -297,11 +337,14 @@ classDiagram
     Episodio --> StatusVisualizacao : possui
 
     %% ==========================================
-    %% FLUXO DOS FRAMEWORKS EXTERNOS
+    %% FLUXO ENTRE CAMADAS
     %% ==========================================
     RotasAPI ..> MidiaSchemaCreate : Valida JSON
-    RotasAPI --> MidiaRepository : Solicita Operações
-    MidiaRepository --> Midia : Persiste no SQLite
+    RotasAPI --> MidiaRepository : Utiliza
+    RotasAPI --> UsuarioRepository : Utiliza
+    MidiaRepositoryJSON ..> Midia : Persiste / Carrega
+    MidiaRepositorySQLite ..> Midia : Persiste / Carrega
+    UsuarioRepositoryJSON ..> Usuario : Persiste / Carrega
 
 
 ```

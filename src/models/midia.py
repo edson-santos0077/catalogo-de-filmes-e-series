@@ -1,4 +1,3 @@
-import uuid
 from abc import ABC, abstractmethod
 from datetime import date, datetime, timezone
 
@@ -34,10 +33,10 @@ class Midia(AvaliavelMixin, SerializavelMixin, ABC):
         ano: int,
         classificacao_indicativa: str,
         elenco: list[str] | None = None,
-        id: str | int | None = None,
+        id: int | None = None,
     ):
         super().__init__()
-        self.id = id or str(uuid.uuid4())
+        self.id = id
         self.titulo = titulo
         self._tipo = tipo
         self.genero = genero
@@ -142,19 +141,22 @@ class Midia(AvaliavelMixin, SerializavelMixin, ABC):
         """Retorna a duração total em minutos."""
 
     @property
-    def id(self) -> str | int | None:
+    def id(self) -> int | None:
         return self._id
 
     @id.setter
-    def id(self, valor: str | int | None):
-        if valor is not None and not str(valor).strip():
-            raise ValorInvalidoError("O ID não pode ser uma string vazia.")
-        self._id = str(valor) if valor is not None else None
+    def id(self, valor: int | None):
+        if valor is not None and not isinstance(valor, int):
+            try:
+                valor = int(valor)
+            except (ValueError, TypeError):
+                raise ValorInvalidoError("O ID deve ser um número inteiro válido.")
+        self._id = valor
 
     def __eq__(self, outro: object) -> bool:
         if not isinstance(outro, Midia):
             return False
-        if self.id and outro.id:
+        if self.id is not None and outro.id is not None:
             return self.id == outro.id
         return (
             self.titulo.lower() == outro.titulo.lower()

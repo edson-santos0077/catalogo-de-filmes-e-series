@@ -26,7 +26,7 @@ class Filme(Midia):
         classificacao_indicativa: str,
         duracao_minutos: int,
         elenco: list[str] | None = None,
-        id: str | int | None = None,
+        id: int | None = None,
     ):
         super().__init__(
             titulo,
