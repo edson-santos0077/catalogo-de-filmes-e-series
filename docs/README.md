@@ -98,7 +98,7 @@ Abaixo encontra-se a representação da modelação orientada a objetos do proje
       'tertiaryColor': 'transparent',
       'tertiaryBorderColor': '#64748b',
       'tertiaryTextColor': '#94a3b8',
-      'fontFamily': 'ui-sans-serif, system-ui, sans-serif'
+      'fontSize': '12px'
     }
   }
 }%%
