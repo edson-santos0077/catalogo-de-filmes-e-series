@@ -98,8 +98,9 @@ Abaixo encontra-se a representação da modelação orientada a objetos do proje
       'tertiaryColor': 'transparent',
       'tertiaryBorderColor': '#64748b',
       'tertiaryTextColor': '#94a3b8',
-      'fontSize': '12px'
-    }
+      'fontSize': '11px'
+    },
+    'themeCSS': 'g.classGroup text { font-size: 11px !important; } .nodeLabel { padding: 8px !important; }'
   }
 }%%
 classDiagram
@@ -108,103 +109,103 @@ classDiagram
     namespace Camada_API {
         class RotasAPI {
             <<Router - FastAPI>>
-            +criar_midia()
-            +listar_midias()
-            +criar_usuario()
-            +obter_relatorios()
+            +criar_midia()&nbsp;&nbsp;
+            +listar_midias()&nbsp;&nbsp;
+            +criar_usuario()&nbsp;&nbsp;
+            +obter_relatorios()&nbsp;&nbsp;
         }
         class MidiaSchemaCreate {
             <<Pydantic Schema>>
-            +titulo: str
-            +tipo: str
-            +duracao_minutos: int
+            +titulo: str&nbsp;&nbsp;
+            +tipo: str&nbsp;&nbsp;
+            +duracao_minutos: int&nbsp;&nbsp;
         }
     }
 
     namespace Camada_Repositorios {
         class MidiaRepository {
             <<Interface - ABC>>
-            +salvar_todos(midias)*
-            +carregar_todos()*
+            +salvar_todos(midias)*&nbsp;&nbsp;
+            +carregar_todos()*&nbsp;&nbsp;
         }
         class MidiaRepositoryJSON {
-            +salvar_todos(midias)
-            +carregar_todos()
+            +salvar_todos(midias)&nbsp;&nbsp;
+            +carregar_todos()&nbsp;&nbsp;
         }
         class MidiaRepositorySQLite {
-            +salvar_todos(midias)
-            +carregar_todos()
+            +salvar_todos(midias)&nbsp;&nbsp;
+            +carregar_todos()&nbsp;&nbsp;
         }
         class UsuarioRepositoryJSON {
-            +salvar(usuario)
-            +carregar(id_usuario)
+            +salvar(usuario)&nbsp;&nbsp;
+            +carregar(id_usuario)&nbsp;&nbsp;
         }
     }
 
     namespace Camada_Dominio {
         class Midia {
             <<Abstract / Serializavel>>
-            #id: int | None
-            #titulo: str
-            #tipo: TipoMidia
-            #status: StatusVisualizacao
-            #nota: float | None
-            +duracao_minutos()* int
-            +alterar_status(novo_status)
+            #id: int | None&nbsp;&nbsp;
+            #titulo: str&nbsp;&nbsp;
+            #tipo: TipoMidia&nbsp;&nbsp;
+            #status: StatusVisualizacao&nbsp;&nbsp;
+            #nota: float | None&nbsp;&nbsp;
+            +duracao_minutos()* int&nbsp;&nbsp;
+            +alterar_status(novo_status)&nbsp;&nbsp;
         }
         class Filme {
-            -duracao_minutos: int
+            -duracao_minutos: int&nbsp;&nbsp;
         }
         class Serie {
-            -temporadas: List~Temporada~
-            +duracao_minutos() int
-            +atualizar_status()
-            +adicionar_temporada()
+            -temporadas: List~Temporada~&nbsp;&nbsp;
+            +duracao_minutos() int&nbsp;&nbsp;
+            +atualizar_status()&nbsp;&nbsp;
+            +adicionar_temporada()&nbsp;&nbsp;
         }
         class Temporada {
-            -numero: int
-            -episodios: List~Episodio~
-            +adicionar_episodio()
-            +calcular_nota_media()
+            -numero: int&nbsp;&nbsp;
+            -episodios: List~Episodio~&nbsp;&nbsp;
+            +adicionar_episodio()&nbsp;&nbsp;
+            +calcular_nota_media()&nbsp;&nbsp;
         }
         class Episodio {
             <<Serializavel>>
-            -id: int | None
-            -titulo: str
-            -duracao_minutos: int
-            +alterar_status()
+            -id: int | None&nbsp;&nbsp;
+            -titulo: str&nbsp;&nbsp;
+            -duracao_minutos: int&nbsp;&nbsp;
+            +alterar_status()&nbsp;&nbsp;
         }
         class Usuario {
             <<Serializavel>>
-            -id_usuario: int | str | None
-            -nome: str
-            -email: str
-            +criar_lista()
-            +adicionar_favorito()
-            +registrar_historico()
+            -id_usuario: int | str | None&nbsp;&nbsp;
+            -nome: str&nbsp;&nbsp;
+            -email: str&nbsp;&nbsp;
+            +criar_lista()&nbsp;&nbsp;
+            +adicionar_favorito()&nbsp;&nbsp;
+            +registrar_historico()&nbsp;&nbsp;
         }
         class ListaPersonalizada {
-            -nome: str
-            -midias: dict~int, Midia~
-            +adicionar_midia()
-            +remover_midia()
+            -nome: str&nbsp;&nbsp;
+            -midias: dict~int, Midia~&nbsp;&nbsp;
+            +adicionar_midia()&nbsp;&nbsp;
+            +remover_midia()&nbsp;&nbsp;
         }
         class RegistroHistorico {
-            -data_hora: datetime
+            -data_hora: datetime&nbsp;&nbsp;
         }
     }
 
     namespace Tipos_Auxiliares {
         class StatusVisualizacao {
             <<enumeration>>
-            NAO_ASSISTIDO
-            ASSISTINDO
-            ASSISTIDO
+            NAO_ASSISTIDO&nbsp;&nbsp;
+            ASSISTINDO&nbsp;&nbsp;
+            ASSISTIDO&nbsp;&nbsp;
         }
         class TipoMidia {
             <<enumeration>>
-            FILME
-            SERIE
+            FILME&nbsp;&nbsp;
+            SERIE&nbsp;&nbsp;
         }
     }
 
