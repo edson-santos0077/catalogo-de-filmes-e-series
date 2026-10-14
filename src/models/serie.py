@@ -1,3 +1,4 @@
+import uuid
 from datetime import date
 
 from models.enums import StatusVisualizacao, TipoMidia
@@ -30,8 +31,10 @@ class Episodio(AvaliavelMixin, SerializavelMixin):
         titulo: str,
         duracao_minutos: int,
         data_lancamento: date | str | None = None,
+        id: str | int | None = None,
     ):
         super().__init__()
+        self.id = id or str(uuid.uuid4())
         self.numero_temporada = numero_temporada
         self.numero_episodio = numero_episodio
         self.titulo = titulo
@@ -108,8 +111,18 @@ class Episodio(AvaliavelMixin, SerializavelMixin):
     def alterar_status(self, novo_status: StatusVisualizacao) -> None:
         self._status = novo_status
 
+    @property
+    def id(self) -> str | int | None:
+        return self._id
+
+    @id.setter
+    def id(self, valor: str | int | None):
+        if valor is not None and not str(valor).strip():
+            raise ValorInvalidoError("O ID do episódio não pode ser vazio.")
+        self._id = str(valor) if valor is not None else None
+
     def __repr__(self) -> str:
-        return f"<Episodio(T{self.numero_temporada:02d}E{self.numero_episodio:02d} - '{self.titulo}')>"
+        return f"<Episodio(id='{self.id}', T{self.numero_temporada:02d}E{self.numero_episodio:02d} - '{self.titulo}')>"
 
     def __str__(self) -> str:
         return f"T{self.numero_temporada:02d}E{self.numero_episodio:02d} - {self.titulo} ({self.duracao_minutos} min) [{self.status.value}]"
@@ -191,9 +204,16 @@ class Serie(Midia):
         ano: int,
         classificacao_indicativa: str,
         elenco: list[str] | None = None,
+        id: str | int | None = None,
     ):
         super().__init__(
-            titulo, TipoMidia.SERIE, genero, ano, classificacao_indicativa, elenco
+            titulo,
+            TipoMidia.SERIE,
+            genero,
+            ano,
+            classificacao_indicativa,
+            elenco,
+            id=id,
         )
         self.temporadas: list[Temporada] = []
 
@@ -216,7 +236,7 @@ class Serie(Midia):
             return self._nota
         return sum(notas_validas) / len(notas_validas)
 
-   def atualizar_status(self) -> None:
+    def atualizar_status(self) -> None:
         todos_episodios = [ep for t in self.temporadas for ep in t.episodios]
         if not todos_episodios:
             return

@@ -1,5 +1,6 @@
+import uuid
 from abc import ABC, abstractmethod
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 
 from models.enums import StatusVisualizacao, TipoMidia
 from models.exceptions import EstadoInvalidoError, ValorInvalidoError
@@ -33,8 +34,10 @@ class Midia(AvaliavelMixin, SerializavelMixin, ABC):
         ano: int,
         classificacao_indicativa: str,
         elenco: list[str] | None = None,
+        id: str | int | None = None,
     ):
         super().__init__()
+        self.id = id or str(uuid.uuid4())
         self.titulo = titulo
         self._tipo = tipo
         self.genero = genero
@@ -129,7 +132,7 @@ class Midia(AvaliavelMixin, SerializavelMixin, ABC):
 
         self._status = novo_status
         if novo_status == StatusVisualizacao.ASSISTIDO and self._data_conclusao is None:
-            self.data_conclusao = datetime.now()
+            self.data_conclusao = datetime.now(timezone.utc)
         elif novo_status != StatusVisualizacao.ASSISTIDO:
             self.data_conclusao = None
 
@@ -138,14 +141,29 @@ class Midia(AvaliavelMixin, SerializavelMixin, ABC):
     def duracao_minutos(self) -> int:
         """Retorna a duração total em minutos."""
 
+    @property
+    def id(self) -> str | int | None:
+        return self._id
+
+    @id.setter
+    def id(self, valor: str | int | None):
+        if valor is not None and not str(valor).strip():
+            raise ValorInvalidoError("O ID não pode ser uma string vazia.")
+        self._id = str(valor) if valor is not None else None
+
     def __eq__(self, outro: object) -> bool:
         if not isinstance(outro, Midia):
             return False
+        if self.id and outro.id:
+            return self.id == outro.id
         return (
             self.titulo.lower() == outro.titulo.lower()
             and self._tipo == outro._tipo
             and self.ano == outro.ano
         )
+
+    def __repr__(self) -> str:
+        return f"<{self.__class__.__name__}(id='{self.id}', titulo='{self.titulo}', ano={self.ano})>"
 
     def __lt__(self, outro: object) -> bool:
         if not isinstance(outro, Midia):
@@ -153,9 +171,6 @@ class Midia(AvaliavelMixin, SerializavelMixin, ABC):
         nota_self = self.nota if self.nota is not None else -1.0
         nota_outro = outro.nota if outro.nota is not None else -1.0
         return nota_self < nota_outro
-
-    def __repr__(self) -> str:
-        return f"<{self.__class__.__name__}(titulo='{self.titulo}', ano={self.ano})>"
 
     def __str__(self) -> str:
         return f"{self.titulo} ({self.ano}) - {self.genero} [{self.status.value}]"
