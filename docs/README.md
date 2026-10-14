@@ -87,6 +87,20 @@ catalogo_filmes/
 Abaixo encontra-se a representação da modelação orientada a objetos do projeto, ilustrando os relacionamentos de herança, composição e agregação:
 
 ```mermaid
+%%{
+  init: {
+    'theme': 'base',
+    'themeVariables': {
+      'primaryColor': '#1e293b',
+      'primaryTextColor': '#f8fafc',
+      'primaryBorderColor': '#334155',
+      'lineColor': '#64748b',
+      'secondaryColor': '#f1f5f9',
+      'tertiaryColor': '#ffffff',
+      'fontFamily': 'ui-sans-serif, system-ui, sans-serif'
+    }
+  }
+}%%
 classDiagram
     direction TB
 
@@ -346,6 +360,37 @@ classDiagram
     MidiaRepositorySQLite ..> Midia : Persiste / Carrega
     UsuarioRepositoryJSON ..> Usuario : Persiste / Carrega
 
+    %% ==========================================
+    %% ESTILOS VISUAIS PERSONALIZADOS (classDef)
+    %% ==========================================
+    classDef interfaceStyle fill:#0369a1,color:#ffffff,stroke:#0284c7,stroke-width:2px;
+    classDef repoStyle fill:#15803d,color:#ffffff,stroke:#16a34a,stroke-width:2px;
+    classDef domainStyle fill:#4338ca,color:#ffffff,stroke:#4f46e5,stroke-width:2px;
+    classDef enumStyle fill:#b45309,color:#ffffff,stroke:#d97706,stroke-width:2px;
+    classDef mixinStyle fill:#6b21a8,color:#ffffff,stroke:#9333ea,stroke-width:2px;
+
+    cssClass "RotasAPI" interfaceStyle;
+    cssClass "MidiaSchemaCreate" interfaceStyle;
+    cssClass "MidiaRepository" repoStyle;
+    cssClass "MidiaRepositoryJSON" repoStyle;
+    cssClass "MidiaRepositorySQLite" repoStyle;
+    cssClass "UsuarioRepository" repoStyle;
+    cssClass "UsuarioRepositoryJSON" repoStyle;
+    cssClass "Midia" domainStyle;
+    cssClass "Filme" domainStyle;
+    cssClass "Serie" domainStyle;
+    cssClass "Temporada" domainStyle;
+    cssClass "Episodio" domainStyle;
+    cssClass "Usuario" domainStyle;
+    cssClass "ListaPersonalizada" domainStyle;
+    cssClass "RegistroHistorico" domainStyle;
+    cssClass "StatusVisualizacao" enumStyle;
+    cssClass "TipoMidia" enumStyle;
+    cssClass "DominioError" enumStyle;
+    cssClass "ValorInvalidoError" enumStyle;
+    cssClass "EstadoInvalidoError" enumStyle;
+    cssClass "AvaliavelMixin" mixinStyle;
+    cssClass "SerializavelMixin" mixinStyle;
 
 ```
 
