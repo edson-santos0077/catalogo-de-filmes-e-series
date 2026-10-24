@@ -3,10 +3,10 @@
 Fornece comportamentos transversais (como avaliação e serialização) que podem
 ser incorporados por diferentes classes da hierarquia sem duplicar código.
 """
+import inspect
 
 from models.enums import Enum
 from models.exceptions import ValorInvalidoError
-
 
 class AvaliavelMixin:
     """Mixin que confere a capacidade de receber e gerir avaliações diretas.

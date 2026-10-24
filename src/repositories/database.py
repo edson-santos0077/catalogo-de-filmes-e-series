@@ -90,18 +90,8 @@ class MidiaRepositoryJSON(MidiaRepository):
                 midia.id = proximo_id
                 proximo_id += 1
 
-        dados_completos = []
-        for midia in midias:
-            dict_midia = midia.to_dict()
-            if isinstance(midia, Serie):
-                dict_midia["temporadas"] = []
-                for temporada in midia.temporadas:
-                    dict_temp = temporada.to_dict()
-                    dict_temp["episodios"] = [
-                        ep.to_dict() for ep in temporada.episodios
-                    ]
-                    dict_midia["temporadas"].append(dict_temp)
-            dados_completos.append(dict_midia)
+        # Uso Otimizado do Mixin (Remove o loop manual de Series/Temporadas para confiar na verificação em mixins)
+        dados_completos = [midia.to_dict() for midia in midias]
 
         with open(self.caminho, "w", encoding="utf-8") as f:
             json.dump(dados_completos, f, indent=4, ensure_ascii=False)
