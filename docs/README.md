@@ -87,265 +87,154 @@ catalogo_filmes/
 Abaixo encontra-se a representação da modelação orientada a objetos do projeto, ilustrando os relacionamentos de herança, composição e agregação:
 
 ```mermaid
+%%{
+  init: {
+    'theme': 'base',
+    'themeVariables': {
+      'primaryColor': '#1e293b',
+      'primaryTextColor': '#f8fafc',
+      'primaryBorderColor': '#475569',
+      'lineColor': '#94a3b8',
+      'tertiaryColor': 'transparent',
+      'tertiaryBorderColor': '#64748b',
+      'tertiaryTextColor': '#94a3b8',
+      'fontSize': '11px'
+    },
+    'themeCSS': 'g.classGroup text { font-size: 11px !important; } .nodeLabel { padding: 8px !important; }'
+  }
+}%%
 classDiagram
     direction TB
 
-    %% ==========================================
-    %% CAMADA DE INTERFACE (FASTAPI / ROUTERS)
-    %% ==========================================
-    class RotasAPI {
-        <<Router - FastAPI>>
-        +criar_midia(payload: MidiaSchemaCreate)
-        +listar_midias()
-        +criar_usuario(payload)
-        +obter_relatorios()
+    namespace Camada_API {
+        class RotasAPI {
+            <<Router - FastAPI>>
+            +criar_midia()&nbsp;&nbsp;
+            +listar_midias()&nbsp;&nbsp;
+            +criar_usuario()&nbsp;&nbsp;
+            +obter_relatorios()&nbsp;&nbsp;
+        }
+        class MidiaSchemaCreate {
+            <<Pydantic Schema>>
+            +titulo: str&nbsp;&nbsp;
+            +tipo: str&nbsp;&nbsp;
+            +duracao_minutos: int&nbsp;&nbsp;
+        }
     }
 
-    class MidiaSchemaCreate {
-        <<Pydantic Schema>>
-        +titulo: str
-        +tipo: str
-        +genero: str
-        +ano: int
-        +duracao_minutos: int
+    namespace Camada_Repositorios {
+        class MidiaRepository {
+            <<Interface - ABC>>
+            +salvar_todos(midias)*&nbsp;&nbsp;
+            +carregar_todos()*&nbsp;&nbsp;
+        }
+        class MidiaRepositoryJSON {
+            +salvar_todos(midias)&nbsp;&nbsp;
+            +carregar_todos()&nbsp;&nbsp;
+        }
+        class MidiaRepositorySQLite {
+            +salvar_todos(midias)&nbsp;&nbsp;
+            +carregar_todos()&nbsp;&nbsp;
+        }
+        class UsuarioRepositoryJSON {
+            +salvar(usuario)&nbsp;&nbsp;
+            +carregar(id_usuario)&nbsp;&nbsp;
+        }
     }
 
-    %% ==========================================
-    %% CAMADA DE PERSISTÊNCIA / REPOSITÓRIOS
-    %% ==========================================
-    class MidiaRepository {
-        <<Interface - ABC>>
-        +salvar_todos(midias: list)* void
-        +carregar_todos()* list
+    namespace Camada_Dominio {
+        class Midia {
+            <<Abstract / Serializavel>>
+            #id: int | None&nbsp;&nbsp;
+            #titulo: str&nbsp;&nbsp;
+            #tipo: TipoMidia&nbsp;&nbsp;
+            #status: StatusVisualizacao&nbsp;&nbsp;
+            #nota: float | None&nbsp;&nbsp;
+            +duracao_minutos()* int&nbsp;&nbsp;
+            +alterar_status(novo_status)&nbsp;&nbsp;
+        }
+        class Filme {
+            -duracao_minutos: int&nbsp;&nbsp;
+        }
+        class Serie {
+            -temporadas: List~Temporada~&nbsp;&nbsp;
+            +duracao_minutos() int&nbsp;&nbsp;
+            +atualizar_status()&nbsp;&nbsp;
+            +adicionar_temporada()&nbsp;&nbsp;
+        }
+        class Temporada {
+            -numero: int&nbsp;&nbsp;
+            -episodios: List~Episodio~&nbsp;&nbsp;
+            +adicionar_episodio()&nbsp;&nbsp;
+            +calcular_nota_media()&nbsp;&nbsp;
+        }
+        class Episodio {
+            <<Serializavel>>
+            -id: int | None&nbsp;&nbsp;
+            -titulo: str&nbsp;&nbsp;
+            -duracao_minutos: int&nbsp;&nbsp;
+            +alterar_status()&nbsp;&nbsp;
+        }
+        class Usuario {
+            <<Serializavel>>
+            -id_usuario: int | str | None&nbsp;&nbsp;
+            -nome: str&nbsp;&nbsp;
+            -email: str&nbsp;&nbsp;
+            +criar_lista()&nbsp;&nbsp;
+            +adicionar_favorito()&nbsp;&nbsp;
+            +registrar_historico()&nbsp;&nbsp;
+        }
+        class ListaPersonalizada {
+            -nome: str&nbsp;&nbsp;
+            -midias: dict~int, Midia~&nbsp;&nbsp;
+            +adicionar_midia()&nbsp;&nbsp;
+            +remover_midia()&nbsp;&nbsp;
+        }
+        class RegistroHistorico {
+            -data_hora: datetime&nbsp;&nbsp;
+        }
     }
 
-    class MidiaRepositoryJSON {
-        <<Repository>>
-        -caminho: str
-        -_obter_proximo_id(midias: list) int
-        +salvar_todos(midias: list) void
-        +carregar_todos() list
+    namespace Tipos_Auxiliares {
+        class StatusVisualizacao {
+            <<enumeration>>
+            NAO_ASSISTIDO&nbsp;&nbsp;
+            ASSISTINDO&nbsp;&nbsp;
+            ASSISTIDO&nbsp;&nbsp;
+        }
+        class TipoMidia {
+            <<enumeration>>
+            FILME&nbsp;&nbsp;
+            SERIE&nbsp;&nbsp;
+        }
     }
 
-    class MidiaRepositorySQLite {
-        <<Repository>>
-        +salvar_todos(midias: list) void
-        +carregar_todos() list
-    }
+    %% Relacionamentos de Repositórios
+    MidiaRepository <|-- MidiaRepositoryJSON
+    MidiaRepository <|-- MidiaRepositorySQLite
 
-    class UsuarioRepository {
-        <<Interface - ABC>>
-        +salvar(usuario: Usuario)* void
-        +carregar(id_usuario: str)* Usuario | None
-    }
+    %% Herança do Domínio
+    Midia <|-- Filme
+    Midia <|-- Serie
 
-    class UsuarioRepositoryJSON {
-        <<Repository>>
-        -caminho: str
-        +salvar(usuario: Usuario) void
-        +carregar(id_usuario: str) Usuario | None
-    }
-
-    MidiaRepository <|-- MidiaRepositoryJSON : Implementa
-    MidiaRepository <|-- MidiaRepositorySQLite : Implementa
-    UsuarioRepository <|-- UsuarioRepositoryJSON : Implementa
-
-    %% ==========================================
-    %% ENUMS E EXCEÇÕES DE DOMÍNIO
-    %% ==========================================
-    class StatusVisualizacao {
-        <<enumeration>>
-        NAO_ASSISTIDO
-        ASSISTINDO
-        ASSISTIDO
-    }
-
-    class TipoMidia {
-        <<enumeration>>
-        FILME
-        SERIE
-    }
-
-    class DominioError { <<exception>> }
-    class ValorInvalidoError { <<exception>> }
-    class EstadoInvalidoError { <<exception>> }
-
-    DominioError <|-- ValorInvalidoError
-    DominioError <|-- EstadoInvalidoError
-
-    %% ==========================================
-    %% MIXINS DE DOMÍNIO
-    %% ==========================================
-    class AvaliavelMixin {
-        <<mixin>>
-        -_nota: float | None
-        +nota() float | None
-        +avaliar(valor: float) void
-    }
-
-    class SerializavelMixin {
-        <<mixin>>
-        +to_dict() dict
-        +from_dict(dados: dict)$ Object
-    }
-
-    %% ==========================================
-    %% CAMADA DE DOMÍNIO (ENTIDADES POO)
-    %% ==========================================
-    class Midia {
-        <<abstract>>
-        -_id: int | None
-        -_titulo: String
-        -_tipo: TipoMidia
-        -_genero: String
-        -_ano: int
-        -classificacao_indicativa: String
-        -_elenco: List~String~
-        -_status: StatusVisualizacao
-        -_data_conclusao: datetime | None
-        +id() int | None
-        +titulo() String
-        +genero() String
-        +ano() int
-        +tipo() TipoMidia
-        +elenco() List~String~
-        +data_conclusao() datetime | None
-        +status() StatusVisualizacao
-        +duracao_minutos()* int
-        +alterar_status(novo_status: StatusVisualizacao) void
-        +converter_minutos_para_horas(minutos: int, multiplicador: float)$ float
-        +__str__() String
-        +__repr__() String
-        +__eq__(outro: Object) bool
-        +__lt__(outro: Object) bool
-    }
-
-    class Filme {
-        -_duracao_minutos: int
-        +duracao_minutos() int
-        +__str__() String
-    }
-
-    class Serie {
-        -temporadas: List~Temporada~
-        +duracao_minutos() int
-        +nota() float | None
-        +atualizar_status() void
-        +adicionar_temporada(temporada: Temporada) void
-        +__len__() int
-        +__str__() String
-    }
-
-    class Temporada {
-        -_numero: int
-        +episodios: List~Episodio~
-        +numero() int
-        +duracao_minutos() int
-        +adicionar_episodio(episodio: Episodio) void
-        +calcular_nota_media() float | None
-        +__len__() int
-        +__repr__() String
-        +__str__() String
-    }
-
-    class Episodio {
-        -_id: int | None
-        -_numero_temporada: int
-        -_numero_episodio: int
-        -_titulo: String
-        -_duracao_minutos: int
-        -_data_lancamento: date | None
-        -_status: StatusVisualizacao
-        +id() int | None
-        +titulo() String
-        +numero_temporada() int
-        +numero_episodio() int
-        +duracao_minutos() int
-        +data_lancamento() date | None
-        +status() StatusVisualizacao
-        +alterar_status(novo_status: StatusVisualizacao) void
-        +__repr__() String
-        +__str__() String
-    }
-
-    class Usuario {
-        -_id_usuario: int | str | None
-        -_nome: String
-        -_email: String
-        -_limite_listas: int
-        -_listas: dict~str, ListaPersonalizada~
-        -_favoritos: ListaPersonalizada
-        -_historico: List~RegistroHistorico~
-        +id_usuario() int | str | None
-        +nome() String
-        +email() String
-        +limite_listas() int
-        +criar_lista(nome: String) ListaPersonalizada
-        +obter_lista(nome: String) ListaPersonalizada
-        +adicionar_favorito(midia: Midia) void
-        +remover_favorito(midia: Midia) void
-        +registrar_historico(midia: Midia, data_hora: datetime) RegistroHistorico
-    }
-
-    class ListaPersonalizada {
-        -_nome: String
-        -_midias: dict~int, Midia~
-        +nome() String
-        +midias() List~Midia~
-        +adicionar_midia(midia: Midia) void
-        +remover_midia(midia: Midia) void
-        +__contains__(item: Object) bool
-        +__len__() int
-    }
-
-    class RegistroHistorico {
-        -_midia: Midia
-        -_data_hora: datetime
-        +midia() Midia
-        +data_hora() datetime
-    }
-
-    %% ==========================================
-    %% RELACIONAMENTOS DE HERANÇA E MIXINS
-    %% ==========================================
-    Midia <|-- Filme : Herança (Polimorfismo)
-    Midia <|-- Serie : Herança (Polimorfismo)
-
-    AvaliavelMixin <|-- Midia : Herda
-    SerializavelMixin <|-- Midia : Herda
-    AvaliavelMixin <|-- Episodio : Herda
-    SerializavelMixin <|-- Episodio : Herda
-    SerializavelMixin <|-- Temporada : Herda
-    SerializavelMixin <|-- Usuario : Herda
-    SerializavelMixin <|-- ListaPersonalizada : Herda
-    SerializavelMixin <|-- RegistroHistorico : Herda
-
-    %% ==========================================
-    %% RELACIONAMENTOS DE ASSOCIAÇÃO E COMPOSIÇÃO
-    %% ==========================================
-    Serie "1" o-- "*" Temporada : Agrega
-    Temporada "1" *-- "*" Episodio : Contém (Composição)
-    Usuario "1" *-- "*" ListaPersonalizada : gerencia
-    Usuario "1" *-- "*" RegistroHistorico : registra
-    Usuario "1" *-- "1" ListaPersonalizada : favoritos
-    ListaPersonalizada "*" o-- "*" Midia : agrupa (dict por id int)
-    RegistroHistorico --> Midia : refere-se
+    %% Composições e Agregações
+    Serie "1" o-- "*" Temporada
+    Temporada "1" *-- "*" Episodio
+    Usuario "1" *-- "*" ListaPersonalizada
+    Usuario "1" *-- "*" RegistroHistorico
+    ListaPersonalizada "*" o-- "*" Midia
+    RegistroHistorico --> Midia
 
     %% Uso de Enums
-    Midia --> TipoMidia : possui
-    Midia --> StatusVisualizacao : possui
-    Episodio --> StatusVisualizacao : possui
+    Midia --> TipoMidia
+    Midia --> StatusVisualizacao
 
-    %% ==========================================
-    %% FLUXO ENTRE CAMADAS
-    %% ==========================================
-    RotasAPI ..> MidiaSchemaCreate : Valida JSON
-    RotasAPI --> MidiaRepository : Utiliza
-    RotasAPI --> UsuarioRepository : Utiliza
-    MidiaRepositoryJSON ..> Midia : Persiste / Carrega
-    MidiaRepositorySQLite ..> Midia : Persiste / Carrega
-    UsuarioRepositoryJSON ..> Usuario : Persiste / Carrega
-
+    %% Integração de Camadas
+    RotasAPI ..> MidiaSchemaCreate
+    RotasAPI --> MidiaRepository
+    MidiaRepositoryJSON ..> Midia
+    MidiaRepositorySQLite ..> Midia
+    UsuarioRepositoryJSON ..> Usuario
 
 ```
 
