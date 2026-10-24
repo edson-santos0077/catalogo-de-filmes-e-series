@@ -95,4 +95,11 @@ class SerializavelMixin:
         if not isinstance(dados, dict):
             raise TypeError("Os dados fornecidos devem ser um dicionário.")
 
-        return cls(**dados)
+        sig = inspect.signature(cls.__init__)
+        params_aceitos = {
+            k for k, v in sig.parameters.items()
+            if k != "self" and v.kind in (inspect.Parameter.POSITIONAL_OR_KEYWORD, inspect.Parameter.KEYWORD_ONLY)
+        }
+
+        dados_filtrados = {k: v for k, v in dados.items() if k in params_aceitos}
+        return cls(**dados_filtrados)
