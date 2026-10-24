@@ -54,8 +54,8 @@ class Episodio(AvaliavelMixin, SerializavelMixin):
         elif isinstance(valor, str):
             try:
                 self._data_lancamento = date.fromisoformat(valor)
-            except ValueError:
-                raise ValueError(
+            except ValorInvalidoError:
+                raise ValorInvalidoError(
                     "A data de lançamento em texto deve estar no formato YYYY-MM-DD."
                 )
         else:
@@ -80,7 +80,7 @@ class Episodio(AvaliavelMixin, SerializavelMixin):
     @numero_temporada.setter
     def numero_temporada(self, valor: int):
         if valor <= 0:
-            raise ValueError("O número da temporada deve ser maior que zero.")
+            raise ValorInvalidoError("O número da temporada deve ser maior que zero.")
         self._numero_temporada = valor
 
     @property
@@ -90,7 +90,7 @@ class Episodio(AvaliavelMixin, SerializavelMixin):
     @numero_episodio.setter
     def numero_episodio(self, valor: int):
         if valor <= 0:
-            raise ValueError("O número do episódio deve ser maior que zero.")
+            raise ValorInvalidoError("O número do episódio deve ser maior que zero.")
         self._numero_episodio = valor
 
     @property
@@ -100,7 +100,7 @@ class Episodio(AvaliavelMixin, SerializavelMixin):
     @duracao_minutos.setter
     def duracao_minutos(self, valor: int):
         if valor <= 0:
-            raise ValueError("A duração do episódio deve ser maior que zero minutos.")
+            raise ValorInvalidoError("A duração do episódio deve ser maior que zero minutos.")
         self._duracao_minutos = valor
 
     @property
@@ -153,7 +153,7 @@ class Temporada(SerializavelMixin):
     @numero.setter
     def numero(self, valor: int):
         if valor <= 0:
-            raise ValueError("O número da temporada deve ser maior que zero.")
+            raise ValorInvalidoError("O número da temporada deve ser maior que zero.")
         self._numero = valor
 
     def adicionar_episodio(self, episodio: Episodio) -> None:
