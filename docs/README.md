@@ -54,12 +54,8 @@ Definição de exceções específicas de domínio (`ValorInvalidoError`, `Estad
 
 ## 📊 Diagrama de Classes (UML)
 
-<div align="center">
-  <img src="docs/mermaid-diagram-2026-10-26-152539.png" alt="Diagrama de Classes UML" width="850"/>
-</div>
-
 <details>
-<summary>🔍 Clique aqui para expandir o código fonte Mermaid</summary>
+<summary>🔍 Clique aqui para expandir o diagrama.</summary>
 
 ```mermaid
 classDiagram
