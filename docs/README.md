@@ -57,7 +57,7 @@ Definição de exceções específicas de domínio (`ValorInvalidoError`, `Estad
 <details>
 <summary>🔍 Clique aqui para expandir o diagrama.</summary>
 
-![Diagrama](https://github.com/edson-santos0077/catalogo-de-filmes-e-series/tree/refatoracao/docs/mermaid-diagram-2026-10-26-160159)
+![Diagrama](mermaid-diagram-2026-10-26-160159.png)
 
 
 </details>
