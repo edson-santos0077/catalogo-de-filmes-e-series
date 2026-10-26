@@ -2,7 +2,7 @@
 
 ## 📌 Visão Geral
 
-Este projeto consiste numa aplicação robusta orientada a objetos (POO) desenvolvida em Python para a gestão de um catálogo pessoal de filmes e séries. O sistema permite acompanhar o progresso de visualização, gerir episódios e temporadas, avaliar mídias, organizar listas personalizadas e consultar estatísticas e relatórios avançados de consumo.
+Este projeto orientado a objetos (POO) desenvolvido em Python para a gestão de um catálogo pessoal de filmes e séries. O sistema permite acompanhar o progresso de visualização, gerir episódios e temporadas, avaliar mídias, organizar listas personalizadas e consultar estatísticas e relatórios avançados de consumo.
 
 A arquitetura adota o padrão **`src-layout`**, separando com clareza as camadas de domínio, persistência, regras de negócio e interface.
 
@@ -57,7 +57,7 @@ Definição de exceções específicas de domínio (`ValorInvalidoError`, `Estad
 <details>
 <summary>🔍 Clique aqui para expandir o diagrama.</summary>
 
-![Diagrama](mermaid-diagram-2026-10-26-160159.png)
+![Diagrama](diagram.png)
 
 
 </details>
@@ -74,7 +74,8 @@ catalogo_de_filmes_e_series/
 │   └── eventos.log              # Log de auditoria (Observer FileLogger)
 │
 ├── docs/                        # Documentação e artefatos visuais
-│   └── mermaid-diagram-2026-10-26-152539.png
+│   ├── diagram.png
+│   └── README.md
 │
 ├── src/                         # Código-fonte principal da aplicação
 │   ├── api/                     # Camada de Interface (Endpoints HTTP / FastAPI)
