@@ -1,8 +1,8 @@
 from datetime import datetime, timezone
 
-from models.exceptions import EstadoInvalidoError, ValorInvalidoError
-from models.midia import Midia
-from models.mixins import SerializavelMixin
+from src.models.exceptions import EstadoInvalidoError, ValorInvalidoError
+from src.models.midia import Midia
+from src.models.mixins import SerializavelMixin
 
 
 class ListaPersonalizada(SerializavelMixin):
@@ -247,6 +247,12 @@ class Usuario(SerializavelMixin):
 
         nova_lista = ListaPersonalizada(nome)
         self._listas[nome_normalizado] = nova_lista
+
+        # Disparo do evento do Observer
+        EventDispatcher().emitir(
+            "LISTA_CRIADA", {"usuario": self.nome, "lista": nome.strip()}
+        )
+
         return nova_lista
 
     def obter_lista(self, nome: str) -> ListaPersonalizada:
@@ -288,6 +294,12 @@ class Usuario(SerializavelMixin):
         """
         registro = RegistroHistorico(midia, data_hora)
         self._historico.append(registro)
+
+        # Disparo do evento do Observer
+        EventDispatcher().emitir(
+            "HISTORICO_REGISTRADO", {"usuario": self.nome, "midia": midia.titulo}
+        )
+
         return registro
 
     def __repr__(self) -> str:

@@ -1,9 +1,9 @@
 from datetime import date
 
-from models.enums import StatusVisualizacao, TipoMidia
-from models.exceptions import ValorInvalidoError
-from models.midia import Midia
-from models.mixins import AvaliavelMixin, SerializavelMixin
+from src.models.enums import StatusVisualizacao, TipoMidia
+from src.models.exceptions import ValorInvalidoError
+from src.models.midia import Midia
+from src.models.mixins import AvaliavelMixin, SerializavelMixin
 
 
 class Episodio(AvaliavelMixin, SerializavelMixin):
@@ -54,7 +54,7 @@ class Episodio(AvaliavelMixin, SerializavelMixin):
         elif isinstance(valor, str):
             try:
                 self._data_lancamento = date.fromisoformat(valor)
-            except ValorInvalidoError:
+            except ValueError:
                 raise ValorInvalidoError(
                     "A data de lançamento em texto deve estar no formato YYYY-MM-DD."
                 )
@@ -243,17 +243,19 @@ class Serie(Midia):
         if not todos_episodios:
             return
 
-        # Agora usamos self.alterar_status() para garantir que a data de conclusão
-        # seja registada automaticamente pela classe pai (Midia)
+        # Altera diretamente o atributo protegido _status para evitar o
+        # acoplamento com a regra de 'data_conclusao' da classe base Midia
         if all(ep.status == StatusVisualizacao.ASSISTIDO for ep in todos_episodios):
-            self.alterar_status(StatusVisualizacao.ASSISTIDO)
+            self._status = StatusVisualizacao.ASSISTIDO
         elif any(
             ep.status in (StatusVisualizacao.ASSISTIDO, StatusVisualizacao.ASSISTINDO)
             for ep in todos_episodios
         ):
-            self.alterar_status(StatusVisualizacao.ASSISTINDO)
+            self._status = StatusVisualizacao.ASSISTINDO
+            self.data_conclusao = None
         else:
-            self.alterar_status(StatusVisualizacao.NAO_ASSISTIDO)
+            self._status = StatusVisualizacao.NAO_ASSISTIDO
+            self.data_conclusao = None
 
     def __len__(self) -> int:
         return sum(len(t) for t in self.temporadas)

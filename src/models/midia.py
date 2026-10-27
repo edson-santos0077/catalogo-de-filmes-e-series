@@ -1,9 +1,9 @@
 from abc import ABC, abstractmethod
 from datetime import date, datetime, timezone
 
-from models.enums import StatusVisualizacao, TipoMidia
-from models.exceptions import EstadoInvalidoError, ValorInvalidoError
-from models.mixins import AvaliavelMixin, SerializavelMixin
+from src.models.enums import StatusVisualizacao, TipoMidia
+from src.models.exceptions import EstadoInvalidoError, ValorInvalidoError
+from src.models.mixins import AvaliavelMixin, SerializavelMixin
 
 
 class Midia(AvaliavelMixin, SerializavelMixin, ABC):
@@ -11,7 +11,7 @@ class Midia(AvaliavelMixin, SerializavelMixin, ABC):
 
     Atua como a classe base abstrata (ABC) para todos os tipos de conteúdos
     audiovisuais (ex.: Filme, Serie), encapsulando atributos comuns como
-    metadados, estado de visualização e avaliações, além de definir a
+    metadados, estado de visualização e asvaliações, além de definir a
     interface obrigatória para cálculo de duração.
 
     Attributes:
@@ -106,12 +106,23 @@ class Midia(AvaliavelMixin, SerializavelMixin, ABC):
         if valor is None:
             self._data_conclusao = None
         elif isinstance(valor, datetime):
-            self._data_conclusao = valor
+            # Se for datetime naive, adiciona o fuso horário UTC
+            if valor.tzinfo is None:
+                self._data_conclusao = valor.replace(tzinfo=timezone.utc)
+            else:
+                self._data_conclusao = valor
         elif isinstance(valor, date):
-            self._data_conclusao = datetime.combine(valor, datetime.min.time())
+            # Ao converter de date para datetime, já injeta o timezone UTC
+            self._data_conclusao = datetime.combine(
+                valor, datetime.min.time(), tzinfo=timezone.utc
+            )
         elif isinstance(valor, str):
             try:
-                self._data_conclusao = datetime.fromisoformat(valor)
+                dt_convertido = datetime.fromisoformat(valor)
+                # Garante UTC se a string ISO não possuir offset de timezone
+                if dt_convertido.tzinfo is None:
+                    dt_convertido = dt_convertido.replace(tzinfo=timezone.utc)
+                self._data_conclusao = dt_convertido
             except ValueError:
                 raise ValorInvalidoError(
                     "A data de conclusão deve estar no formato ISO (ex.: YYYY-MM-DDTHH:MM:SS)."
@@ -134,6 +145,17 @@ class Midia(AvaliavelMixin, SerializavelMixin, ABC):
             self.data_conclusao = datetime.now(timezone.utc)
         elif novo_status != StatusVisualizacao.ASSISTIDO:
             self.data_conclusao = None
+
+        # Disparo do evento do Observer
+        EventDispatcher().emitir(
+            "STATUS_ALTERADO",
+            {
+                "id": self.id,
+                "titulo": self.titulo,
+                "de": status_anterior.value,
+                "para": novo_status.value,
+            },
+        )
 
     @property
     @abstractmethod

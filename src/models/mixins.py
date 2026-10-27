@@ -5,8 +5,8 @@ ser incorporados por diferentes classes da hierarquia sem duplicar código.
 """
 import inspect
 
-from models.enums import Enum
-from models.exceptions import ValorInvalidoError
+from enum import Enum
+from src.models.exceptions import ValorInvalidoError
 
 class AvaliavelMixin:
     """Mixin que confere a capacidade de receber e gerir avaliações diretas.
@@ -37,6 +37,10 @@ class AvaliavelMixin:
             raise ValorInvalidoError("A nota deve estar entre 0.0 e 10.0.")
         self._nota = round(float(valor), 1)
 
+        # Disparo do evento do Observer
+        titulo = getattr(self, "titulo", str(self))
+        EventDispatcher().emitir("MIDIA_AVALIADA", {"item": titulo, "nota": self._nota})
+
     def avaliar(self, valor: float) -> None:
         """Atribui ou atualiza a nota de avaliação da entidade.
 
@@ -47,8 +51,7 @@ class AvaliavelMixin:
             ValorInvalidoError: Se o valor fornecido não for do tipo numérico (int/float)
                 ou se estiver fora do intervalo permitido [0.0, 10.0].
         """
-        self.nota = valor  # Delega para o setter que faz a validação
-
+        self.nota = valor
 
 class SerializavelMixin:
     """Mixin que confere a capacidade de conversão para estruturas dicionário/JSON.
