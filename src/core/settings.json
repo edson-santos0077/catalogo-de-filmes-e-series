@@ -1,1 +1,8 @@
+{
+    "nota_minima_recomendado": 8.0,
+    "limite_listas_usuario": 10,
+    "multiplicador_duracao": 1.0,
+    "casas_decimais_tempo": 2,
+    "backend_persistencia": "json"
+}
 

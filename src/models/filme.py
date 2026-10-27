@@ -1,7 +1,6 @@
-from models.enums import TipoMidia
-from models.exceptions import ValorInvalidoError
-
-from models.midia import Midia
+from src.models.enums import TipoMidia
+from src.models.exceptions import ValorInvalidoError
+from src.models.midia import Midia
 
 
 class Filme(Midia):
@@ -27,9 +26,16 @@ class Filme(Midia):
         classificacao_indicativa: str,
         duracao_minutos: int,
         elenco: list[str] | None = None,
+        id: int | None = None,
     ):
         super().__init__(
-            titulo, TipoMidia.FILME, genero, ano, classificacao_indicativa, elenco
+            titulo,
+            TipoMidia.FILME,
+            genero,
+            ano,
+            classificacao_indicativa,
+            elenco,
+            id=id,
         )
         self.duracao_minutos = duracao_minutos
 

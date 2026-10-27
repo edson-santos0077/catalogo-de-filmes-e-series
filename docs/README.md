@@ -2,327 +2,180 @@
 
 ## 📌 Visão Geral
 
-Este projeto consiste numa API desenvolvida em FastAPI (ou sistema de linha de comando CLI) para gerir um catálogo pessoal de filmes e séries. O objetivo do sistema é permitir que o utilizador acompanhe o progresso de visualização de séries, compare avaliações entre mídias, gira listas personalizadas e consulte relatórios de consumo. A modelação do sistema é orientada a objetos (POO), enfatizando conceitos como herança, encapsulamento, validações e composição.
+Este projeto orientado a objetos (POO) desenvolvido em Python para a gestão de um catálogo pessoal de filmes e séries. O sistema permite acompanhar o progresso de visualização, gerir episódios e temporadas, avaliar mídias, organizar listas personalizadas e consultar estatísticas e relatórios avançados de consumo.
+
+A arquitetura adota o padrão **`src-layout`**, separando com clareza as camadas de domínio, persistência, regras de negócio e interface.
+
+---
+
+## 🛠️ Decisões de Arquitetura & Padrões de Projeto
+
+### 1. Modelação Orientada a Objetos (POO)
+- **Hierarquia de Domínio e Polimorfismo**: A classe abstrata `Midia` estabelece o contrato para `Filme` e `Serie`. Métodos abstratos como `duracao_minutos` garantem que cada subclasse calcule a sua duração adequadamente (duração fixa em filmes vs. soma dinâmica das temporadas e episódios em séries).
+- **Composição e Agregação**: A classe `Serie` compõe `Temporada`, que por sua vez contém instâncias de `Episodio`. A integridade das relações é mantida através de métodos dedicados (`adicionar_temporada`, `adicionar_episodio`).
+- **Encapsulamento Rígido**: Todos os atributos de estado interno são protegidos (prefixo `_`) e expostos via `@property` e `@setter` com validações prévias de intervalo, tipo e formatação (ex.: notas restritas a $0.0 - 10.0$, títulos não vazios, tempos positivos).
+- **Métodos Especiais (Dunder Methods)**:
+  - `__eq__`: Comparação de mídias por ID ou combinação única de Título + Tipo + Ano.
+  - `__lt__`: Ordenação automática de mídias com base na avaliação.
+  - `__len__`: Contagem total de episódios em instâncias de `Serie` e mídias contidas em `ListaPersonalizada`.
+  - `__str__` / `__repr__`: Exibição formatada e detalhada de representação das entidades.
+
+### 2. Padrão Observer (Log de Eventos Desacoplado)
+Para estender a aplicação com auditoria e logs sem acoplar I/O ou manipulação de ficheiros às entidades de domínio, foi implementado o padrão **Observer**:
+- **`EventDispatcher` (Subject/Singleton)**: Gerencia centralizadamente as inscrições dos observadores e a emissão de eventos no sistema.
+- **Observadores Concretos (`ConsoleLogger`, `FileLogger`)**: O `ConsoleLogger` imprime notificações em tempo real no terminal, enquanto o `FileLogger` registra eventos estruturados num ficheiro de auditoria local (`data/eventos.log`).
+- **Eventos Disparados**: Alteração de status de visualização (`STATUS_ALTERADO`), avaliação de mídia (`MIDIA_AVALIADA`), criação de listas (`LISTA_CRIADA`) e atualização de histórico (`HISTORICO_REGISTRADO`).
+
+### 3. Reutilização via Mixins
+- **`AvaliavelMixin`**: Encapsula a lógica de atribuição, validação e notificação de notas.
+- **`SerializavelMixin`**: Utiliza *reflection* (`inspect.signature`) e inspeção de dicionário interno para converter instâncias complexas (incluindo datas ISO 8601 e Enums) em dicionários primitivos e reconstruí-las via `from_dict`.
+
+### 4. Camada de Persistência Flexível
+- Acesso a dados abstraído pela interface `MidiaRepository`.
+- Implementação ativa em SQLite (`MidiaRepositorySQLite`) com suporte ORM/Database, permitindo alternância simples para persistência em JSON (`MidiaRepositoryJSON`) configurável no `settings.json`.
+
+### 5. Tratamento de Exceções Customizadas
+Definição de exceções específicas de domínio (`ValorInvalidoError`, `EstadoInvalidoError`) em `src/models/exceptions.py`, impedindo que estados inconsistentes sejam propagados.
+
+---
 
 ## 🚀 Funcionalidades Principais
 
-* **Cadastro de Mídias**: Permite o registo de filmes e séries com atributos como título, tipo, género, ano, duração e classificação indicativa. O sistema impede a duplicidade de mídias que possuam o mesmo título, tipo e ano.
+- **Cadastro e Impedimento de Duplicados**: Inserção de filmes e séries impedindo mídias duplicadas com o mesmo título, tipo e ano.
+- **Conclusão Automática de Séries**: Transição automática da série para `ASSISTIDO` assim que todos os seus episódios forem marcados como concluídos.
+- **Listas e Favoritos**: Criação de listas temáticas personalizadas respeitando o limite máximo definido na configuração global (`settings.json`).
+- **Relatórios & Estatísticas de Consumo**:
+  - Média de notas por género cinematográfico/televisivo.
+  - Tempo total assistido por tipo de mídia, convertido para horas com multiplicador configurável.
+  - Ranking Top 10 das mídias com melhores avaliações.
+  - Mídias mais assistidas e relatórios de progresso.
+
+---
+
+## 📊 Diagrama de Classes (UML)
+
+<details>
+<summary>🔍 Clique aqui para expandir o diagrama.</summary>
+
+![Diagrama](diagram.png)
 
 
-* **Gestão de Séries e Episódios**: Suporta o registo de temporadas e episódios para a entidade Série. O sistema marca automaticamente a série com o status de "ASSISTIDA" assim que todos os seus episódios estiverem concluídos.
+</details>
 
-
-* **Sistema de Avaliações**: Os utilizadores podem avaliar filmes e episódios atribuindo uma nota numérica de 0 a 10. O sistema calcula de forma automática a nota média das séries e a nota geral do catálogo.
-
-
-* **Histórico e Listas Personalizadas**: Regista a data e hora de conclusão de cada mídia. Permite criar listas personalizadas (ex: "Para assistir", "Favoritos") até um limite definido nas configurações e adicionar/remover mídias das mesmas.
-
-
-* **Relatórios e Estatísticas**: Geração de relatórios que incluem a média de notas por género, o tempo total assistido por tipo de mídia, o Top 10 das mídias mais bem avaliadas e as séries com o maior número de episódios assistidos. Os relatórios consideram apenas mídias com o status "ASSISTIDO".
-
-
-* **Configurações Dinâmicas**: Leitura de parâmetros através do ficheiro `settings.json`, que define a nota mínima para uma mídia ser "recomendada", o limite de listas por utilizador e o multiplicador de duração para conversão de tempo.
-
-
+---
 
 ## 📂 Estrutura de Arquivos e Diretórios
 
-A arquitetura do projeto está organizada em camadas, separando a interface, as regras de negócio e os modelos de domínio:
-```
-catalogo_filmes/
+```text
+catalogo_de_filmes_e_series/
 │
-├── data/                        # Arquivos locais e de persistência
-│   └── catalogo.db              # Arquivo do banco de dados SQLite (gerado automaticamente)
+├── data/                        # Arquivos de dados persistentes e logs
+│   ├── catalogo.db              # Banco SQLite gerado automaticamente
+│   └── eventos.log              # Log de auditoria (Observer FileLogger)
 │
-├── docs/                        # Documentação do projeto
-│   └── README.md                # Documentação principal e diagramas Mermaid
+├── docs/                        # Documentação e artefatos visuais
+│   ├── diagram.png
+│   └── README.md
 │
-├── requirements.txt             # Dependências do projeto (FastAPI, SQLAlchemy, etc.)
-├── .gitignore                   # Ficheiros ignorados pelo Git (.env, __pycache__, catalogo.db)
-│
-├── src/                         # Código-fonte da aplicação (Encapsulamento)
-│   ├── main.py                  # Ponto de entrada do FastAPI (agora protegido dentro de src)
-│   │
-│   ├── api/                     # Camada de Interface (Rotas HTTP)
-│   │   ├── __init__.py
+├── src/                         # Código-fonte principal da aplicação
+│   ├── api/                     # Camada de Interface (Endpoints HTTP / FastAPI)
 │   │   ├── rotas_midias.py
 │   │   ├── rotas_usuarios.py
-│   │   └── schemas.py           # Validações Pydantic
+│   │   └── schemas.py
 │   │
-│   ├── core/                    # Configurações globais do sistema
-│   │   ├── __init__.py
-│   │   ├── configuracao.py      # Lógica para ler e validar o settings.json
+│   ├── core/                    # Configurações globais e infraestrutura
+│   │   ├── configuracao.py      # Leitor e validador do settings.json
+│   │   ├── events.py            # EventDispatcher e interface Observer
+│   │   ├── loggers.py           # ConsoleLogger e FileLogger
 │   │   └── settings.json        # Arquivo de parâmetros dinâmicos
 │   │
-│   ├── models/                  # Camada de Domínio (As suas classes POO)
-│   │   ├── __init__.py
-│   │   ├── enums.py
-│   │   ├── exceptions.py
-│   │   ├── filme.py
-│   │   ├── mixins.py
-│   │   ├── midia.py
-│   │   ├── serie.py
-│   │   └── usuario.py
+│   ├── models/                  # Camada de Domínio (POO)
+│   │   ├── enums.py             # Enums StatusVisualizacao e TipoMidia
+│   │   ├── exceptions.py        # Exceções personalizadas de domínio
+│   │   ├── filme.py             # Entidade Filme
+│   │   ├── midia.py             # Classe abstrata base Midia
+│   │   ├── mixins.py            # AvaliavelMixin e SerializavelMixin
+│   │   ├── serie.py             # Entidades Serie, Temporada e Episodio
+│   │   └── usuario.py           # Entidades Usuario, ListaPersonalizada e RegistroHistorico
 │   │
-│   ├── repositories/            # Camada de Acesso a Dados
-│   │   ├── __init__.py
-│   │   ├── database.py          # Configuração do ORM e conexão SQLite (substitui o antigo dados.py solto)
+│   ├── repositories/            # Camada de Persistência e Repositórios
+│   │   ├── database.py          # Conexão ORM / SQLite
 │   │   ├── midia_repository.py
 │   │   └── usuario_repository.py
 │   │
 │   └── services/                # Regras de Negócio e Casos de Uso
-│       ├── __init__.py
-│       └── relatorio.py         # Cálculos de médias e estatísticas
+│       └── relatorio.py         # Cálculos de relatórios estatísticos
 │
-└── tests/
-    ├── __init__.py
-    ├── conftest.py              # Fixtures globais (ex: banco SQLite em memória para os testes)
-    ├── test_api.py              # Testes de integração dos endpoints
-    ├── test_midia.py            # Testes unitários puros das classes (sem banco de dados)
-    └── test_relatorios.py       # Testes da lógica de relatórios
+├── tests/                       # Suíte de testes automatizados (pytest)
+│   ├── conftest.py              # Fixtures e banco SQLite em memória
+│   ├── test_api.py              # Testes de integração das rotas
+│   ├── test_midia.py            # Testes unitários das entidades de domínio
+│   └── test_relatorios.py       # Testes dos serviços estatísticos
+│
+├── main.py                      # Ponto de entrada da aplicação
+├── pytest.ini                  # Configuração do pythonpath para os testes
+├── requirements.txt             # Dependências do projeto
+└── seed.py                      # Script de povoamento inicial do banco de dados
 ```
 
-## 📊 Diagrama de Classes (UML)
+---
 
-Abaixo encontra-se a representação da modelação orientada a objetos do projeto, ilustrando os relacionamentos de herança, composição e agregação:
+## ⚙️ Configurações Dinâmicas (`settings.json`)
 
-```mermaid
-classDiagram
-    direction TB
+O sistema lê dinamicamente o arquivo `src/core/settings.json`, permitindo ajustar comportamentos operacionais sem necessidade de recompilação ou alteração do código-fonte:
 
-    %% ==========================================
-    %% CAMADA DE INTERFACE (FASTAPI)
-    %% ==========================================
-    class RotasAPI {
-        <<Router - FastAPI>>
-        +criar_midia(payload: MidiaSchemaCreate)
-        +listar_midias()
-        +obter_relatorios()
-    }
-
-    class MidiaSchemaCreate {
-        <<Pydantic Schema>>
-        +titulo: str
-        +tipo: str
-        +ano: int
-        +duracao_minutos: int
-    }
-
-    %% ==========================================
-    %% CAMADA DE PERSISTÊNCIA (SQLITE / ORM)
-    %% ==========================================
-    class MidiaRepository {
-        <<Repository>>
-        -db_session: Session
-        +salvar(midia: Midia)
-        +buscar_por_id(id: int) Midia
-    }
-
-    class ORMBase {
-        <<SQLAlchemy / SQLModel Base>>
-    }
-
-    %% ==========================================
-    %% ENUMS E EXCEÇÕES DE DOMÍNIO
-    %% ==========================================
-    class StatusVisualizacao {
-        <<enumeration>>
-        NAO_ASSISTIDO
-        ASSISTINDO
-        ASSISTIDO
-    }
-
-    class TipoMidia {
-        <<enumeration>>
-        FILME
-        SERIE
-    }
-
-    class DominioError { <<exception>> }
-    class ValorInvalidoError { <<exception>> }
-    class EstadoInvalidoError { <<exception>> }
-
-    DominioError <|-- ValorInvalidoError
-    DominioError <|-- EstadoInvalidoError
-
-    %% ==========================================
-    %% MIXINS
-    %% ==========================================
-    class AvaliavelMixin {
-        <<mixin>>
-        -_nota: float | None
-        +nota() float | None
-        +avaliar(valor: float) void
-    }
-
-    class SerializavelMixin {
-        <<mixin>>
-        +to_dict() dict
-    }
-
-    %% ==========================================
-    %% CAMADA DE DOMÍNIO (MAPEADA NO ORM)
-    %% ==========================================
-    class Midia {
-        <<abstract / ORM Model>>
-        -_titulo: String
-        -_tipo: TipoMidia
-        -_genero: String
-        -_ano: int
-        -classificacao_indicativa: String
-        -_elenco: List~String~
-        -_status: StatusVisualizacao
-        -_data_conclusao: datetime | None
-        +titulo() String
-        +genero() String
-        +ano() int
-        +tipo() TipoMidia
-        +elenco() List~String~
-        +data_conclusao() datetime | None
-        +status() StatusVisualizacao
-        +duracao_minutos()* int
-        +alterar_status(novo_status: StatusVisualizacao) void <<@registrar_evento>>
-        +from_dict(dados: dict)$ Midia
-        +converter_minutos_para_horas(minutos: int, multiplicador: float)$ float
-        +__str__() String
-        +__repr__() String
-        +__eq__(outro: Object) bool
-        +__lt__(outro: Object) bool
-    }
-
-    class Filme {
-        <<ORM Model>>
-        -_duracao_minutos: int
-        +duracao_minutos() int
-        +__str__() String
-    }
-
-    class Serie {
-        <<ORM Model>>
-        -temporadas: List~Temporada~
-        +duracao_minutos() int
-        +nota() float | None
-        +atualizar_status() void
-        +adicionar_temporada(temporada: Temporada) void
-        +__len__() int
-        +__str__() String
-    }
-
-    class Temporada {
-        <<ORM Model>>
-        -_numero: int
-        -episodios: List~Episodio~
-        +numero() int
-        +duracao_minutos() int
-        +adicionar_episodio(episodio: Episodio) void
-        +calcular_nota_media() float | None
-        +__len__() int
-        +__repr__() String
-        +__str__() String
-    }
-
-    class Episodio {
-        <<ORM Model>>
-        -_numero_temporada: int
-        -_numero_episodio: int
-        -_titulo: String
-        -_duracao_minutos: int
-        -_data_lancamento: date | None
-        -_status: StatusVisualizacao
-        +titulo() String
-        +numero_temporada() int
-        +numero_episodio() int
-        +duracao_minutos() int
-        +data_lancamento() date | None
-        +status() StatusVisualizacao
-        +alterar_status(novo_status: StatusVisualizacao) void <<@registrar_evento>>
-        +__repr__() String
-        +__str__() String
-    }
-
-    class Usuario {
-        <<ORM Model>>
-        -id_usuario: String
-        -nome: String
-        -email: String
-        +criar_lista(nome: String) ListaPersonalizada
-        +adicionar_favorito(midia: Midia) void
-    }
-
-    class ListaPersonalizada {
-        <<ORM Model>>
-        -nome: String
-        +adicionar_midia(midia: Midia) void
-        +remover_midia(midia: Midia) void
-    }
-
-    class RegistroHistorico {
-        <<ORM Model>>
-        -midia: Midia
-        -data_hora: datetime
-        +data_hora() datetime
-    }
-
-    %% ==========================================
-    %% RELACIONAMENTOS DE HERANÇA E ORM
-    %% ==========================================
-    ORMBase <|-- Midia : Herda
-    ORMBase <|-- Temporada : Herda
-    ORMBase <|-- Episodio : Herda
-    ORMBase <|-- Usuario : Herda
-    ORMBase <|-- ListaPersonalizada : Herda
-    ORMBase <|-- RegistroHistorico : Herda
-
-    Midia <|-- Filme : Herança (Polimorfismo)
-    Midia <|-- Serie : Herança (Polimorfismo)
-
-    AvaliavelMixin <|-- Midia : Utiliza
-    SerializavelMixin <|-- Midia : Utiliza
-    AvaliavelMixin <|-- Episodio : Utiliza
-    SerializavelMixin <|-- Episodio : Utiliza
-
-    %% ==========================================
-    %% RELACIONAMENTOS DE ASSOCIAÇÃO
-    %% ==========================================
-    Serie "1" o-- "*" Temporada : Agrega
-    Temporada "1" *-- "*" Episodio : Contém (Composição)
-    Usuario "1" *-- "*" ListaPersonalizada : gerencia
-    Usuario "1" *-- "*" RegistroHistorico : registra
-    ListaPersonalizada "*" o-- "*" Midia : agrupa
-    RegistroHistorico --> Midia : refere-se
-
-    %% Uso de Enums
-    Midia --> TipoMidia : possui
-    Midia --> StatusVisualizacao : possui
-    Episodio --> StatusVisualizacao : possui
-
-    %% ==========================================
-    %% FLUXO DOS FRAMEWORKS EXTERNOS
-    %% ==========================================
-    RotasAPI ..> MidiaSchemaCreate : Valida JSON
-    RotasAPI --> MidiaRepository : Solicita Operações
-    MidiaRepository --> Midia : Persiste no SQLite
-
-
+```json
+{
+    "nota_minima_recomendado": 8.0,
+    "limite_listas_usuario": 10,
+    "multiplicador_duracao": 1.0,
+    "casas_decimais_tempo": 2,
+    "backend_persistencia": "sqlite"
+}
 ```
 
+- **`nota_minima_recomendado`**: Nota de corte para rotular uma mídia como "Recomendada"
+- **`limite_listas_usuario`**: Quantidade máxima de listas personalizadas por usuário.
+- **`multiplicador_duracao`**: Fator multiplicador para cálculo de tempo total assistido (ex.: conversão de escala).
+- **`backend_persistencia`**: Define o motor de dados ativo (`sqlite` ou `json`).
+
+---
 
 ## 🛠️ Como Executar o Projeto
 
 ### Pré-requisitos
-* Python 3.10+
+- Python 3.10 ou superior instalado.
 
-### Instalação
-1. Clone o repositório:
-   ```bash
-   git clone https://github.com/edson-santos0077/catalogo-de-filmes-e-series.git
-   cd catalogo-de-filmes-e-series
-   ```
+### 1. Instalação de Dependências
+Clone o repositório e instale as dependências necessárias:
 
+```bash
+git clone [https://github.com/edson-santos0077/catalogo-de-filmes-e-series.git](https://github.com/edson-santos0077/catalogo-de-filmes-e-series.git)
+cd catalogo-de-filmes-e-series
+pip install -r requirements.txt
+```
+
+### 2. Povoar o Banco de Dados (`seed.py`)
+Para popular a base de dados SQLite com registros iniciais de filmes, séries, episódios e avaliações:
+
+```bash
+python seed.py
+```
+
+### 3. Executar o Servidor API
+Inicie o servidor local FastAPI via Uvicorn:
+
+```bash
+uvicorn main:app --reload
+```
+Acesse a documentação interativa da API em `http://127.0.0.1:8000/docs`.
+
+---
 
 ## 🧪 Executando os Testes Automatizados
 
-Para rodar a suíte de testes com o `pytest`, execute:
+A suíte de testes utiliza o `pytest` e cobre a criação de objetos, validações de atributos, cálculo de relatórios e regras do Observer:
+
 ```bash
 py -m pytest -v
 ```

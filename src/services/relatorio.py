@@ -1,27 +1,48 @@
-from datetime import datetime
+from datetime import datetime, timezone
 
-from models.enums import StatusVisualizacao
-from models.midia import Midia
+from src.models.enums import StatusVisualizacao
+from src.models.midia import Midia
 
 
 class RelatorioService:
-    """Serviço responsável por gerar estatísticas e agregações do catálogo."""
+    """
+    Serviço responsável por gerar estatísticas, relatórios e agregações do catálogo.
+
+    Esta classe concentra as regras de negócio para cálculos de métricas de
+    consumo de mídias pelos utilizadores.
+    """
 
     @staticmethod
     def calcular_ocupacao_por_periodo(
         midias: list[Midia], data_inicio: datetime, data_fim: datetime
     ) -> dict:
         """
-        Calcula o tempo total assistido num determinado período.
+        Calcula o tempo total gasto a assistir a mídias num determinado período.
+
+        Filtra a lista de mídias para contabilizar apenas aquelas que possuem
+        o status de 'ASSISTIDO' e cuja data de conclusão está dentro do intervalo
+        fornecido. O resultado é retornado tanto em minutos absolutos como
+        convertido para horas, respeitando o arredondamento global configurado.
 
         Args:
-            midias (list[Midia]): Lista de mídias do utilizador.
-            data_inicio (datetime): Data de início do filtro.
-            data_fim (datetime): Data de fim do filtro.
+            midias (list[Midia]): Lista de mídias do utilizador a ser analisada.
+            data_inicio (datetime): Data de início do intervalo de filtro.
+            data_fim (datetime): Data limite do intervalo de filtro.
 
         Returns:
-            dict: Relatório com total em minutos e em horas.
+            dict: Um dicionário contendo as seguintes chaves:
+                - 'periodo' (str): Representação em texto do intervalo filtrado.
+                - 'total_minutos' (int): A soma de minutos gastos.
+                - 'total_horas' (float): O total convertido para horas com base
+                  nas configurações dinâmicas do sistema.
         """
+
+        # Garante que as datas de limite possuam timezone (UTC) para evitar TypeError
+        if data_inicio.tzinfo is None:
+            data_inicio = data_inicio.replace(tzinfo=timezone.utc)
+        if data_fim.tzinfo is None:
+            data_fim = data_fim.replace(tzinfo=timezone.utc)
+
         minutos_gastos = 0
 
         for midia in midias:
@@ -31,9 +52,9 @@ class RelatorioService:
                 if data_inicio <= midia.data_conclusao <= data_fim:
                     minutos_gastos += midia.duracao_minutos
 
-        # Reutilizamos o método estático da classe Midia para converter!
+        # Reutiliza o método estático da classe Midia para converter!
         horas_gastas = Midia.converter_minutos_para_horas(
-            minutos_gastos, casas_decimais=1
+            minutos_gastos, casas_decimais=configuracao_global.casas_decimais_tempo
         )
 
         return {

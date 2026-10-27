@@ -1,9 +1,9 @@
 from datetime import date
 
-from models.enums import StatusVisualizacao, TipoMidia
-from models.exceptions import ValorInvalidoError
-from models.midia import Midia
-from models.mixins import AvaliavelMixin, SerializavelMixin
+from src.models.enums import StatusVisualizacao, TipoMidia
+from src.models.exceptions import ValorInvalidoError
+from src.models.midia import Midia
+from src.models.mixins import AvaliavelMixin, SerializavelMixin
 
 
 class Episodio(AvaliavelMixin, SerializavelMixin):
@@ -30,8 +30,10 @@ class Episodio(AvaliavelMixin, SerializavelMixin):
         titulo: str,
         duracao_minutos: int,
         data_lancamento: date | str | None = None,
+        id: int | None = None,
     ):
         super().__init__()
+        self.id = id
         self.numero_temporada = numero_temporada
         self.numero_episodio = numero_episodio
         self.titulo = titulo
@@ -53,7 +55,7 @@ class Episodio(AvaliavelMixin, SerializavelMixin):
             try:
                 self._data_lancamento = date.fromisoformat(valor)
             except ValueError:
-                raise ValueError(
+                raise ValorInvalidoError(
                     "A data de lançamento em texto deve estar no formato YYYY-MM-DD."
                 )
         else:
@@ -78,7 +80,7 @@ class Episodio(AvaliavelMixin, SerializavelMixin):
     @numero_temporada.setter
     def numero_temporada(self, valor: int):
         if valor <= 0:
-            raise ValueError("O número da temporada deve ser maior que zero.")
+            raise ValorInvalidoError("O número da temporada deve ser maior que zero.")
         self._numero_temporada = valor
 
     @property
@@ -88,7 +90,7 @@ class Episodio(AvaliavelMixin, SerializavelMixin):
     @numero_episodio.setter
     def numero_episodio(self, valor: int):
         if valor <= 0:
-            raise ValueError("O número do episódio deve ser maior que zero.")
+            raise ValorInvalidoError("O número do episódio deve ser maior que zero.")
         self._numero_episodio = valor
 
     @property
@@ -98,7 +100,7 @@ class Episodio(AvaliavelMixin, SerializavelMixin):
     @duracao_minutos.setter
     def duracao_minutos(self, valor: int):
         if valor <= 0:
-            raise ValueError("A duração do episódio deve ser maior que zero minutos.")
+            raise ValorInvalidoError("A duração do episódio deve ser maior que zero minutos.")
         self._duracao_minutos = valor
 
     @property
@@ -108,8 +110,21 @@ class Episodio(AvaliavelMixin, SerializavelMixin):
     def alterar_status(self, novo_status: StatusVisualizacao) -> None:
         self._status = novo_status
 
+    @property
+    def id(self) -> int | None:
+        return self._id
+
+    @id.setter
+    def id(self, valor: int | None):
+        if valor is not None and not isinstance(valor, int):
+            try:
+                valor = int(valor)
+            except (ValueError, TypeError):
+                raise ValorInvalidoError("O ID deve ser um número inteiro válido.")
+        self._id = valor
+
     def __repr__(self) -> str:
-        return f"<Episodio(T{self.numero_temporada:02d}E{self.numero_episodio:02d} - '{self.titulo}')>"
+        return f"<Episodio(id='{self.id}', T{self.numero_temporada:02d}E{self.numero_episodio:02d} - '{self.titulo}')>"
 
     def __str__(self) -> str:
         return f"T{self.numero_temporada:02d}E{self.numero_episodio:02d} - {self.titulo} ({self.duracao_minutos} min) [{self.status.value}]"
@@ -138,7 +153,7 @@ class Temporada(SerializavelMixin):
     @numero.setter
     def numero(self, valor: int):
         if valor <= 0:
-            raise ValueError("O número da temporada deve ser maior que zero.")
+            raise ValorInvalidoError("O número da temporada deve ser maior que zero.")
         self._numero = valor
 
     def adicionar_episodio(self, episodio: Episodio) -> None:
@@ -191,9 +206,16 @@ class Serie(Midia):
         ano: int,
         classificacao_indicativa: str,
         elenco: list[str] | None = None,
+        id: int | None = None,
     ):
         super().__init__(
-            titulo, TipoMidia.SERIE, genero, ano, classificacao_indicativa, elenco
+            titulo,
+            TipoMidia.SERIE,
+            genero,
+            ano,
+            classificacao_indicativa,
+            elenco,
+            id=id,
         )
         self.temporadas: list[Temporada] = []
 
@@ -216,22 +238,24 @@ class Serie(Midia):
             return self._nota
         return sum(notas_validas) / len(notas_validas)
 
-   def atualizar_status(self) -> None:
+    def atualizar_status(self) -> None:
         todos_episodios = [ep for t in self.temporadas for ep in t.episodios]
         if not todos_episodios:
             return
 
-        # Agora usamos self.alterar_status() para garantir que a data de conclusão
-        # seja registada automaticamente pela classe pai (Midia)
+        # Altera diretamente o atributo protegido _status para evitar o
+        # acoplamento com a regra de 'data_conclusao' da classe base Midia
         if all(ep.status == StatusVisualizacao.ASSISTIDO for ep in todos_episodios):
-            self.alterar_status(StatusVisualizacao.ASSISTIDO)
+            self._status = StatusVisualizacao.ASSISTIDO
         elif any(
             ep.status in (StatusVisualizacao.ASSISTIDO, StatusVisualizacao.ASSISTINDO)
             for ep in todos_episodios
         ):
-            self.alterar_status(StatusVisualizacao.ASSISTINDO)
+            self._status = StatusVisualizacao.ASSISTINDO
+            self.data_conclusao = None
         else:
-            self.alterar_status(StatusVisualizacao.NAO_ASSISTIDO)
+            self._status = StatusVisualizacao.NAO_ASSISTIDO
+            self.data_conclusao = None
 
     def __len__(self) -> int:
         return sum(len(t) for t in self.temporadas)

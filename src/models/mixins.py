@@ -3,10 +3,10 @@
 Fornece comportamentos transversais (como avaliação e serialização) que podem
 ser incorporados por diferentes classes da hierarquia sem duplicar código.
 """
+import inspect
 
-from models.enums import Enum
-from models.exceptions import ValorInvalidoError
-
+from enum import Enum
+from src.models.exceptions import ValorInvalidoError
 
 class AvaliavelMixin:
     """Mixin que confere a capacidade de receber e gerir avaliações diretas.
@@ -37,6 +37,10 @@ class AvaliavelMixin:
             raise ValorInvalidoError("A nota deve estar entre 0.0 e 10.0.")
         self._nota = round(float(valor), 1)
 
+        # Disparo do evento do Observer
+        titulo = getattr(self, "titulo", str(self))
+        EventDispatcher().emitir("MIDIA_AVALIADA", {"item": titulo, "nota": self._nota})
+
     def avaliar(self, valor: float) -> None:
         """Atribui ou atualiza a nota de avaliação da entidade.
 
@@ -47,8 +51,7 @@ class AvaliavelMixin:
             ValorInvalidoError: Se o valor fornecido não for do tipo numérico (int/float)
                 ou se estiver fora do intervalo permitido [0.0, 10.0].
         """
-        self.nota = valor  # Delega para o setter que faz a validação
-
+        self.nota = valor
 
 class SerializavelMixin:
     """Mixin que confere a capacidade de conversão para estruturas dicionário/JSON.
@@ -70,29 +73,36 @@ class SerializavelMixin:
         """
         dados = {}
         for chave, valor in self.__dict__.items():
-            # Remove o underline inicial dos atributos privados/protegidos
             nome_campo = chave.lstrip("_")
-            if isinstance(valor, Enum):  # Caso seja um Enum (ex: StatusVisualizacao)
+            if isinstance(valor, Enum):
                 dados[nome_campo] = valor.value
-            elif hasattr(valor, "isoformat"):  # Caso seja datetime/date
+            elif hasattr(valor, "isoformat"):
                 dados[nome_campo] = valor.isoformat()
+            elif isinstance(valor, list):
+                dados[nome_campo] = [
+                    item.to_dict() if hasattr(item, "to_dict") else item
+                    for item in valor
+                ]
+            elif isinstance(valor, dict):
+                dados[nome_campo] = {
+                    k: v.to_dict() if hasattr(v, "to_dict") else v
+                    for k, v in valor.items()
+                }
             else:
                 dados[nome_campo] = valor
         return dados
 
     @classmethod
     def from_dict(cls, dados: dict):
-        """Cria uma instância da classe a partir de um dicionário de dados.
-
-        Args:
-            dados (dict): Dicionário contendo os atributos da instância.
-
-        Returns:
-            Uma nova instância da classe correspondente.
-        """
+        """Cria uma instância da classe a partir de um dicionário de dados."""
         if not isinstance(dados, dict):
             raise TypeError("Os dados fornecidos devem ser um dicionário.")
 
-        # O **dados desempacota o dicionário, passando as chaves como
-        # parâmetros nomeados para o __init__ da classe
-        return cls(**dados)
+        sig = inspect.signature(cls.__init__)
+        params_aceitos = {
+            k for k, v in sig.parameters.items()
+            if k != "self" and v.kind in (inspect.Parameter.POSITIONAL_OR_KEYWORD, inspect.Parameter.KEYWORD_ONLY)
+        }
+
+        dados_filtrados = {k: v for k, v in dados.items() if k in params_aceitos}
+        return cls(**dados_filtrados)
