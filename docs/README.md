@@ -56,6 +56,7 @@ Definição de exceções específicas de domínio (`ValorInvalidoError`, `Estad
 
 <details>
 <summary>🔍 Clique aqui para expandir o diagrama.</summary>
+  
 ```mermaid
     classDiagram
     class Midia {
