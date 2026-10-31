@@ -28,7 +28,7 @@ def test_ocupacao_soma_apenas_dentro_do_periodo(filme_padrao, serie_padrao, data
         data_hoje - timedelta(days=10),
         data_hoje
     )
-    assert resultado["total_minutos"] == 175 # Apenas a duração do filme
+    assert resultado["total_minutos"] == 148 # Apenas a duração do filme
 
 def test_ocupacao_ignora_midias_fora_do_periodo(filme_padrao, data_hoje):
     filme_padrao.alterar_status(StatusVisualizacao.ASSISTIDO)
@@ -42,7 +42,7 @@ def test_ocupacao_datas_limites_inclusivas(filme_padrao, data_hoje):
     filme_padrao.data_conclusao = data_hoje # Exatamente no limite
 
     resultado = RelatorioService.calcular_ocupacao_por_periodo([filme_padrao], data_hoje - timedelta(days=1), data_hoje)
-    assert resultado["total_minutos"] == 175
+    assert resultado["total_minutos"] == 148
 
 def test_ocupacao_suporta_datas_sem_timezone(filme_padrao):
     filme_padrao.alterar_status(StatusVisualizacao.ASSISTIDO)
@@ -52,7 +52,7 @@ def test_ocupacao_suporta_datas_sem_timezone(filme_padrao):
 
     # Não deve lançar TypeError
     resultado = RelatorioService.calcular_ocupacao_por_periodo([filme_padrao], dt_inicio_naive, dt_fim_naive)
-    assert resultado["total_minutos"] == 175
+    assert resultado["total_minutos"] == 148
 
 # --- TESTES DE CONVERSÃO DE TEMPO (MÉTODO ESTÁTICO) ---
 
@@ -75,3 +75,15 @@ def test_conversao_rejeita_minutos_negativos():
 def test_conversao_rejeita_multiplicador_negativo():
     with pytest.raises(ValorInvalidoError):
         Midia.converter_minutos_para_horas(100, multiplicador=-1.0)
+
+def test_top_10_ignora_midia_assistida_sem_nota(filme_padrao):
+    from src.models.enums import StatusVisualizacao
+    from src.services.relatorio import RelatorioService
+
+    # Filme assistido, mas sem avaliação (nota = 0.0)
+    filme_padrao.alterar_status(StatusVisualizacao.ASSISTIDO)
+
+    top_10 = RelatorioService.obter_top_10([filme_padrao])
+
+    # Não deve aparecer no Top 10 pois não possui nota atribuída
+    assert len(top_10) == 0

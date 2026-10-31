@@ -2,10 +2,10 @@ from datetime import datetime
 
 import pytest
 
-# Substitua a linha 4 atual por esta:
+
 from models import Episodio, Filme, Serie, Temporada
-from models.enums import StatusVisualizacao, TipoMidia
-from models.exceptions import ValorInvalidoError
+from src.models.enums import StatusVisualizacao, TipoMidia
+from src.models.exceptions import ValorInvalidoError
 
 # --- TESTES DE FILME E VALIDAÇÕES BASE ---
 
