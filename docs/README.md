@@ -56,9 +56,60 @@ Definição de exceções específicas de domínio (`ValorInvalidoError`, `Estad
 
 <details>
 <summary>🔍 Clique aqui para expandir o diagrama.</summary>
+```mermaid
+    classDiagram
+    class Midia {
+        <<abstract>>
+        #String _titulo
+        #TipoMidia _tipo
+        #float _nota
+        #StatusVisualizacao _status
+        +avaliar(nota: float)
+        +duracao_minutos() int*
+    }
 
-![Diagrama](diagram.png)
+    class Filme {
+        -int _duracao_minutos
+        +duracao_minutos() int
+    }
 
+    class Serie {
+        -list~Temporada~ _temporadas
+        +adicionar_temporada(t: Temporada)
+        +atualizar_status()
+        +duracao_minutos() int
+    }
+
+    class Temporada {
+        -int _numero
+        -list~Episodio~ _episodios
+        +adicionar_episodio(e: Episodio)
+    }
+
+    class Episodio {
+        -int _numero_episodio
+        -int _duracao_minutos
+        -float _nota
+    }
+
+    class Usuario {
+        -String _nome
+        -list~ListaPersonalizada~ _listas
+        +criar_lista(nome: String)
+        +adicionar_favorito(m: Midia)
+    }
+
+    %% Relacionamentos de Herança
+    Midia <|-- Filme
+    Midia <|-- Serie
+
+    %% Relacionamentos de Composição/Agregação
+    Serie *-- Temporada : contém
+    Temporada *-- Episodio : contém
+    Usuario o-- Midia : interage / avalia
+```
+
+Nota: Um diagrama de arquitetura completo com as camadas de persistência e rotas da API encontra-se na pasta docs/.
 
 </details>
 
@@ -70,12 +121,13 @@ Definição de exceções específicas de domínio (`ValorInvalidoError`, `Estad
 catalogo_de_filmes_e_series/
 │
 ├── data/                        # Arquivos de dados persistentes e logs
-│   ├── catalogo.db              # Banco SQLite gerado automaticamente
+│   ├── catalogo.db              # Banco de dados SQLite gerado automaticamente
+│   ├── catalogo.json            # Banco de dados JSON (alternativa de persistência)
 │   └── eventos.log              # Log de auditoria (Observer FileLogger)
 │
 ├── docs/                        # Documentação e artefatos visuais
-│   ├── diagram.png
-│   └── README.md
+│   ├── diagram.png              # Diagrama arquitetural completo
+│   └── README.md                # Cópia local da documentação
 │
 ├── src/                         # Código-fonte principal da aplicação
 │   ├── api/                     # Camada de Interface (Endpoints HTTP / FastAPI)
@@ -87,7 +139,7 @@ catalogo_de_filmes_e_series/
 │   │   ├── configuracao.py      # Leitor e validador do settings.json
 │   │   ├── events.py            # EventDispatcher e interface Observer
 │   │   ├── loggers.py           # ConsoleLogger e FileLogger
-│   │   └── settings.json        # Arquivo de parâmetros dinâmicos
+│   │   └── settings.json        # Arquivo de parâmetros dinâmicos (ativo)
 │   │
 │   ├── models/                  # Camada de Domínio (POO)
 │   │   ├── enums.py             # Enums StatusVisualizacao e TipoMidia
@@ -99,23 +151,24 @@ catalogo_de_filmes_e_series/
 │   │   └── usuario.py           # Entidades Usuario, ListaPersonalizada e RegistroHistorico
 │   │
 │   ├── repositories/            # Camada de Persistência e Repositórios
-│   │   ├── database.py          # Conexão ORM / SQLite
-│   │   ├── midia_repository.py
-│   │   └── usuario_repository.py
+│   │   ├── database.py          # Conexão
+│   │   ├── midia_repository.py  # Acesso a dados das mídias
+│   │   └── usuario_repository.py# Acesso a dados dos utilizadores
 │   │
 │   └── services/                # Regras de Negócio e Casos de Uso
 │       └── relatorio.py         # Cálculos de relatórios estatísticos
 │
 ├── tests/                       # Suíte de testes automatizados (pytest)
-│   ├── conftest.py              # Fixtures e banco SQLite em memória
+│   ├── conftest.py              # Fixtures e configuração de ambiente de teste
 │   ├── test_api.py              # Testes de integração das rotas
 │   ├── test_midia.py            # Testes unitários das entidades de domínio
 │   └── test_relatorios.py       # Testes dos serviços estatísticos
 │
-├── main.py                      # Ponto de entrada da aplicação
-├── pytest.ini                  # Configuração do pythonpath para os testes
+├── main.py                      # Ponto de entrada da aplicação FastAPI
+├── pytest.ini                   # Configuração do pythonpath para os testes
 ├── requirements.txt             # Dependências do projeto
-└── seed.py                      # Script de povoamento inicial do banco de dados
+├── seed.py                      # Script de povoamento inicial do banco de dados
+└── settings.example.json        # Exemplo de configuração exigido pela rubrica
 ```
 
 ---
@@ -150,7 +203,7 @@ O sistema lê dinamicamente o arquivo `src/core/settings.json`, permitindo ajust
 Clone o repositório e instale as dependências necessárias:
 
 ```bash
-git clone [https://github.com/edson-santos0077/catalogo-de-filmes-e-series.git](https://github.com/edson-santos0077/catalogo-de-filmes-e-series.git)
+git clone https://github.com/edson-santos0077/catalogo-de-filmes-e-series.git
 cd catalogo-de-filmes-e-series
 pip install -r requirements.txt
 ```
@@ -170,6 +223,30 @@ uvicorn main:app --reload
 ```
 Acesse a documentação interativa da API em `http://127.0.0.1:8000/docs`.
 
+---
+
+## 💡 Exemplos de Uso (API)
+
+Após iniciar o servidor, pode interagir com a aplicação diretamente pelo **Swagger UI** (`http://127.0.0.1:8000/docs`) ou via terminal utilizando comandos cURL:
+
+**1. Adicionar um novo Filme**
+```bash
+curl -X POST "[http://127.0.0.1:8000/midias/](http://127.0.0.1:8000/midias/)" -H "Content-Type: application/json" -d "{\"titulo\": \"O Senhor dos Anéis: A Sociedade do Anel\", \"tipo\": \"FILME\", \"genero\": \"Fantasia\", \"ano\": 2001, \"duracao_minutos\": 178, \"elenco\": [\"Elijah Wood\", \"Ian McKellen\"]}"
+```
+
+**2. Gerar Relatório do Top 10 Mídias**
+```bash
+curl -X GET "[http://127.0.0.1:8000/midias/relatorios/top10](http://127.0.0.1:8000/midias/relatorios/top10)" -H "accept: application/json"
+```
+
+**3. Obter Média de Notas por Género**
+```bash
+curl -X GET "[http://127.0.0.1:8000/midias/relatorios/notas-por-genero](http://127.0.0.1:8000/midias/relatorios/notas-por-genero)" -H "accept: application/json"
+```
+
+**4. Obter Tempo Total Assistido por Tipo (Filmes vs Séries)**
+```bash
+curl -X GET "[http://127.0.0.1:8000/midias/relatorios/tempo-total-por-tipo](http://127.0.0.1:8000/midias/relatorios/tempo-total-por-tipo)" -H "accept: application/json"
 ---
 
 ## 🧪 Executando os Testes Automatizados
