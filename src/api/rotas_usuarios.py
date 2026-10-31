@@ -5,9 +5,9 @@ from fastapi import APIRouter, HTTPException, status
 
 from src.api.schemas import UsuarioCreate, UsuarioResponse, ListaCreate, FavoritoCreate
 from src.models.usuario import Usuario
-from src.repositories.database import get_usuario_repository
 from src.models.exceptions import ValorInvalidoError, EstadoInvalidoError
-from src.repositories.database import get_usuario_repository, get_midia_repository
+from src.repositories.usuario_repository import get_usuario_repository
+from src.repositories.midia_repository import get_midia_repository
 
 
 
@@ -32,7 +32,6 @@ def criar_usuario(usuario_in: UsuarioCreate):
         # O repositório real lida com a persistência no banco de dados (SQLite/JSON)
         usuario_salvo = repo.adicionar(novo_usuario)
         return usuario_salvo
-
     except (ValorInvalidoError, EstadoInvalidoError) as e:
         # Captura regras de domínio quebradas na instanciação (ex: e-mail inválido)
         raise HTTPException(status_code=400, detail=str(e))

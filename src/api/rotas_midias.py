@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Dict
 from fastapi import APIRouter, HTTPException, status
 
 from src.api.schemas import (
@@ -8,7 +8,9 @@ from src.models.filme import Filme
 from src.models.serie import Serie, Temporada, Episodio
 from src.models.enums import TipoMidia
 from src.models.exceptions import ValorInvalidoError, EstadoInvalidoError
-from src.repositories.database import get_midia_repository
+from src.repositories.midia_repository import get_midia_repository
+from src.services.relatorio import RelatorioService
+from src.repositories.midia_repository import MidiaRepositorySQLite
 
 router = APIRouter(prefix="/midias", tags=["Mídias"])
 
@@ -46,13 +48,11 @@ def criar_midia(midia_in: MidiaCreate):
         raise HTTPException(status_code=400, detail="Erro ao criar mídia: " + str(e))
 
 # 2. Relatório Top 10 (Deve vir antes do GET /{midia_id})
-@router.get("/relatorios/top", response_model=List[MidiaResponse])
-def relatorio_top_midias():
+@router.get("/relatorios/top10", response_model=List[MidiaResponse])
+def obter_top_10_midias():
     repo = get_midia_repository()
-    todas_midias = repo.listar_todas()
-    avaliadas = [m for m in todas_midias if getattr(m, 'nota', None) is not None]
-    top_10 = sorted(avaliadas, key=lambda x: x.nota, reverse=True)[:10]
-    return top_10
+    todas_midias = repo.carregar_todos()
+    return RelatorioService.obter_top_10(todas_midias)
 
 # 3. Listar Mídias
 @router.get("/", response_model=List[MidiaResponse])
@@ -131,3 +131,29 @@ def obter_midia(midia_id: int):
     if not midia:
         raise HTTPException(status_code=404, detail="Mídia não encontrada.")
     return midia
+
+@router.get("/relatorios/notas-por-genero", response_model=Dict[str, float])
+def relatorio_notas_por_genero():
+    """
+    Retorna a média de notas das mídias assistidas agrupadas por gênero.
+    """
+    # 1. Instancia o repositório (ou use Injeção de Dependência, se já tiver configurado)
+    repo = MidiaRepositorySQLite()
+
+    # 2. Carrega todas as mídias do banco de dados
+    todas_midias = repo.carregar_todos()
+
+    # 3. Processa o relatório através do serviço
+    medias = RelatorioService.media_notas_por_genero(todas_midias)
+
+    # 4. Retorna o dicionário (o FastAPI converte automaticamente para JSON)
+    return medias
+
+@router.get("/relatorios/tempo-total-por-tipo", response_model=Dict[str, float])
+def relatorio_tempo_total():
+    """
+    Retorna o tempo total das mídias assistidas agrupadas por tipo.
+    """
+    repo = get_midia_repository()
+    todas_midias = repo.carregar_todos()
+    return RelatorioService.tempo_total_assistido_por_tipo(todas_midias)
