@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 from src.models.exceptions import EstadoInvalidoError, ValorInvalidoError
 from src.models.midia import Midia
 from src.models.mixins import SerializavelMixin
+from src.core.events import EventDispatcher
 
 
 class ListaPersonalizada(SerializavelMixin):

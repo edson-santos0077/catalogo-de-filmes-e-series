@@ -4,6 +4,7 @@ from datetime import date, datetime, timezone
 from src.models.enums import StatusVisualizacao, TipoMidia
 from src.models.exceptions import EstadoInvalidoError, ValorInvalidoError
 from src.models.mixins import AvaliavelMixin, SerializavelMixin
+from src.core.events import EventDispatcher
 
 
 class Midia(AvaliavelMixin, SerializavelMixin, ABC):
@@ -137,10 +138,17 @@ class Midia(AvaliavelMixin, SerializavelMixin, ABC):
         return self._status
 
     def alterar_status(self, novo_status: StatusVisualizacao) -> None:
-        if not isinstance(novo_status, StatusVisualizacao):
+        if not(isinstance(novo_status, StatusVisualizacao)):
             raise EstadoInvalidoError("O status informado é inválido.")
 
+
+        # 1. Guardar o status antigo antes de sobrescrever
+        status_anterior = self._status
+
+        # 2. Atualizar para o novo status
         self._status = novo_status
+
+
         if novo_status == StatusVisualizacao.ASSISTIDO and self._data_conclusao is None:
             self.data_conclusao = datetime.now(timezone.utc)
         elif novo_status != StatusVisualizacao.ASSISTIDO:

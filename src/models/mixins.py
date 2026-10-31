@@ -7,6 +7,7 @@ import inspect
 
 from enum import Enum
 from src.models.exceptions import ValorInvalidoError
+from src.core.events import EventDispatcher
 
 class AvaliavelMixin:
     """Mixin que confere a capacidade de receber e gerir avaliações diretas.
@@ -31,7 +32,7 @@ class AvaliavelMixin:
 
     @nota.setter
     def nota(self, valor: float) -> None:
-        if not isinstance(valor, (int, float)) or isinstance(valor, bool):
+        if not isinstance(valor, (int, float)):
             raise ValorInvalidoError("A nota deve ser um valor numérico.")
         if not (0 <= valor <= 10):
             raise ValorInvalidoError("A nota deve estar entre 0.0 e 10.0.")
