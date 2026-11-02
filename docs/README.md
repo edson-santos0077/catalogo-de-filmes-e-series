@@ -37,7 +37,7 @@ python seed.py
 Inicie o servidor local FastAPI via Uvicorn:
 
 ```bash
-uvicorn main:app --reload
+uvicorn main:app --reload --reload-dir src
 ```
 Acesse a documentação interativa da API em `http://127.0.0.1:8000/docs`.
 
@@ -49,41 +49,34 @@ Após iniciar o servidor, pode interagir com a aplicação diretamente pelo **Sw
 
 **1. Adicionar um novo Filme**
 ```bash
-curl -X POST "[http://127.0.0.1:8000/midias/](http://127.0.0.1:8000/midias/)" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "titulo": "O Senhor dos Anéis: A Sociedade do Anel",
-    "tipo": "FILME",
-    "genero": "Fantasia",
-    "ano": 2001,
-    "duracao_minutos": 178,
-    "elenco": ["Elijah Wood", "Ian McKellen"]
-  }'
+curl -X POST "http://127.0.0.1:8000/midias/" -H "Content-Type: application/json" -d "{\"titulo\": \"A Paixão de Cristo\", \"tipo\": \"FILME\", \"genero\": \"Drama\", \"ano\": 2004, \"duracao_minutos\": 127, \"elenco\": [\"Jim Caviezel\", \"Maia Morgenstern\", \"Monica Bellucci\"]}"
 ```
 
 **2. Gerar Relatório do Top 10 Mídias**
 ```bash
-curl -X GET "[http://127.0.0.1:8000/midias/relatorios/top10](http://127.0.0.1:8000/midias/relatorios/top10)" -H "accept: application/json"
+curl -X GET "http://127.0.0.1:8000/midias/relatorios/top10" -H "accept: application/json"
 ```
 
 **3. Obter Média de Notas por Género**
 ```bash
-curl -X GET "[http://127.0.0.1:8000/midias/relatorios/notas-por-genero](http://127.0.0.1:8000/midias/relatorios/notas-por-genero)" -H "accept: application/json"
+curl -X GET "http://127.0.0.1:8000/midias/relatorios/notas-por-genero" -H "accept: application/json"
 ```
 
 **4. Obter Tempo Total Assistido por Tipo (Filmes vs Séries)**
 ```bash
-curl -X GET "[http://127.0.0.1:8000/midias/relatorios/tempo-total-por-tipo](http://127.0.0.1:8000/midias/relatorios/tempo-total-por-tipo)" -H "accept: application/json"
----
+curl -X GET "http://127.0.0.1:8000/midias/relatorios/tempo-total-por-tipo" -H "accept: application/json"
+
 ```
 > ** Nota sobre Ajuda (--help):** Por se tratar de uma API REST, a função de ajuda e exploração de comandos está disponível de forma visual e interativa através do Swagger UI. Após iniciar o servidor, aceda a `http://127.0.0.1:8000/docs` para ver todos os endpoints documentados, esquemas de dados e testar as requisições.
+
+---
 
 ## 🧪 Executando os Testes Automatizados
 
 A suíte de testes utiliza o `pytest` e cobre a criação de objetos, validações de atributos, cálculo de relatórios e regras do Observer:
 
 ```bash
-py -m pytest -v
+python -m pytest -v
 ```
 ---
 
