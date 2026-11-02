@@ -1,9 +1,7 @@
 # Catálogo de Filmes e Séries
 
 Aluno: Edson Oliveira Santos
-
 Matrícula: 2026002630
-
 Disciplina: ES0008 - PROGRAMAÇÃO ORIENTADA A OBJETOS
 
 ## 📌 Visão Geral
@@ -14,6 +12,81 @@ A arquitetura adota o padrão **`src-layout`**, separando com clareza as camadas
 
 ---
 
+## 🛠️ Como Executar o Projeto
+
+### Pré-requisitos
+- Python 3.10 ou superior instalado.
+
+### 1. Instalação de Dependências
+Clone o repositório e instale as dependências necessárias:
+
+```bash
+git clone https://github.com/edson-santos0077/catalogo-de-filmes-e-series.git
+cd catalogo-de-filmes-e-series
+pip install -r requirements.txt
+```
+
+### 2. Povoar o Banco de Dados (`seed.py`)
+Para popular a base de dados SQLite com registros iniciais de filmes, séries, episódios e avaliações:
+
+```bash
+python seed.py
+```
+
+### 3. Executar o Servidor API
+Inicie o servidor local FastAPI via Uvicorn:
+
+```bash
+uvicorn main:app --reload
+```
+Acesse a documentação interativa da API em `http://127.0.0.1:8000/docs`.
+
+---
+
+## 💡 Exemplos de Uso (API)
+
+Após iniciar o servidor, pode interagir com a aplicação diretamente pelo **Swagger UI** (`http://127.0.0.1:8000/docs`) ou via terminal utilizando comandos cURL:
+
+**1. Adicionar um novo Filme**
+```bash
+curl -X POST "[http://127.0.0.1:8000/midias/](http://127.0.0.1:8000/midias/)" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "titulo": "O Senhor dos Anéis: A Sociedade do Anel",
+    "tipo": "FILME",
+    "genero": "Fantasia",
+    "ano": 2001,
+    "duracao_minutos": 178,
+    "elenco": ["Elijah Wood", "Ian McKellen"]
+  }'
+```
+
+**2. Gerar Relatório do Top 10 Mídias**
+```bash
+curl -X GET "[http://127.0.0.1:8000/midias/relatorios/top10](http://127.0.0.1:8000/midias/relatorios/top10)" -H "accept: application/json"
+```
+
+**3. Obter Média de Notas por Género**
+```bash
+curl -X GET "[http://127.0.0.1:8000/midias/relatorios/notas-por-genero](http://127.0.0.1:8000/midias/relatorios/notas-por-genero)" -H "accept: application/json"
+```
+
+**4. Obter Tempo Total Assistido por Tipo (Filmes vs Séries)**
+```bash
+curl -X GET "[http://127.0.0.1:8000/midias/relatorios/tempo-total-por-tipo](http://127.0.0.1:8000/midias/relatorios/tempo-total-por-tipo)" -H "accept: application/json"
+---
+```
+> ** Nota sobre Ajuda (--help):** Por se tratar de uma API REST, a função de ajuda e exploração de comandos está disponível de forma visual e interativa através do Swagger UI. Após iniciar o servidor, aceda a `http://127.0.0.1:8000/docs` para ver todos os endpoints documentados, esquemas de dados e testar as requisições.
+
+## 🧪 Executando os Testes Automatizados
+
+A suíte de testes utiliza o `pytest` e cobre a criação de objetos, validações de atributos, cálculo de relatórios e regras do Observer:
+
+```bash
+py -m pytest -v
+```
+---
+
 ## 🛠️ Decisões de Arquitetura & Padrões de Projeto
 
 ### 1. Modelação Orientada a Objetos (POO)
@@ -21,9 +94,10 @@ A arquitetura adota o padrão **`src-layout`**, separando com clareza as camadas
 - **Composição e Agregação**: A classe `Serie` compõe `Temporada`, que por sua vez contém instâncias de `Episodio`. A integridade das relações é mantida através de métodos dedicados (`adicionar_temporada`, `adicionar_episodio`).
 - **Encapsulamento Rígido**: Todos os atributos de estado interno são protegidos (prefixo `_`) e expostos via `@property` e `@setter` com validações prévias de intervalo, tipo e formatação (ex.: notas restritas a $0.0 - 10.0$, títulos não vazios, tempos positivos).
 - **Métodos Especiais (Dunder Methods)**:
+  - `__contains__`: Implementado em `ListaPersonalizada` para permitir o operador `in` (ex: `if midia in favoritos:`).
   - `__eq__`: Comparação de mídias por ID ou combinação única de Título + Tipo + Ano.
-  - `__lt__`: Ordenação automática de mídias com base na avaliação.
   - `__len__`: Contagem total de episódios em instâncias de `Serie` e mídias contidas em `ListaPersonalizada`.
+  - `__lt__`: Ordenação automática de mídias com base na avaliação.
   - `__str__` / `__repr__`: Exibição formatada e detalhada de representação das entidades.
 
 ### 2. Padrão Observer (Log de Eventos Desacoplado)
@@ -205,67 +279,3 @@ O sistema lê dinamicamente o arquivo `src/core/settings.json`, permitindo ajust
 
 ---
 
-## 🛠️ Como Executar o Projeto
-
-### Pré-requisitos
-- Python 3.10 ou superior instalado.
-
-### 1. Instalação de Dependências
-Clone o repositório e instale as dependências necessárias:
-
-```bash
-git clone https://github.com/edson-santos0077/catalogo-de-filmes-e-series.git
-cd catalogo-de-filmes-e-series
-pip install -r requirements.txt
-```
-
-### 2. Povoar o Banco de Dados (`seed.py`)
-Para popular a base de dados SQLite com registros iniciais de filmes, séries, episódios e avaliações:
-
-```bash
-python seed.py
-```
-
-### 3. Executar o Servidor API
-Inicie o servidor local FastAPI via Uvicorn:
-
-```bash
-uvicorn main:app --reload
-```
-Acesse a documentação interativa da API em `http://127.0.0.1:8000/docs`.
-
----
-
-## 💡 Exemplos de Uso (API)
-
-Após iniciar o servidor, pode interagir com a aplicação diretamente pelo **Swagger UI** (`http://127.0.0.1:8000/docs`) ou via terminal utilizando comandos cURL:
-
-**1. Adicionar um novo Filme**
-```bash
-curl -X POST "[http://127.0.0.1:8000/midias/](http://127.0.0.1:8000/midias/)" -H "Content-Type: application/json" -d "{\"titulo\": \"O Senhor dos Anéis: A Sociedade do Anel\", \"tipo\": \"FILME\", \"genero\": \"Fantasia\", \"ano\": 2001, \"duracao_minutos\": 178, \"elenco\": [\"Elijah Wood\", \"Ian McKellen\"]}"
-```
-
-**2. Gerar Relatório do Top 10 Mídias**
-```bash
-curl -X GET "[http://127.0.0.1:8000/midias/relatorios/top10](http://127.0.0.1:8000/midias/relatorios/top10)" -H "accept: application/json"
-```
-
-**3. Obter Média de Notas por Género**
-```bash
-curl -X GET "[http://127.0.0.1:8000/midias/relatorios/notas-por-genero](http://127.0.0.1:8000/midias/relatorios/notas-por-genero)" -H "accept: application/json"
-```
-
-**4. Obter Tempo Total Assistido por Tipo (Filmes vs Séries)**
-```bash
-curl -X GET "[http://127.0.0.1:8000/midias/relatorios/tempo-total-por-tipo](http://127.0.0.1:8000/midias/relatorios/tempo-total-por-tipo)" -H "accept: application/json"
-
-```
----
-
-## 🧪 Executando os Testes Automatizados
-
-A suíte de testes utiliza o `pytest` e cobre a criação de objetos, validações de atributos, cálculo de relatórios e regras do Observer:
-
-```bash
-py -m pytest -v
-```
