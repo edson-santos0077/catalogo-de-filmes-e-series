@@ -15,37 +15,33 @@ from src.repositories.midia_repository import MidiaRepositorySQLite
 router = APIRouter(prefix="/midias", tags=["Mídias"])
 
 # 1. Adicionar Mídia
-@router.post("/", response_model=MidiaResponse, status_code=status.HTTP_201_CREATED)
-def criar_midia(midia_in: MidiaCreate):
+@router.post("/", status_code=201)
+def criar_midia(midia_in: MidiaCreate): # O nome do seu schema Pydantic pode variar
     repo = get_midia_repository()
 
-    try:
-        if midia_in.tipo == TipoMidia.FILME:
-            if not midia_in.duracao_minutos:
-                raise HTTPException(status_code=400, detail="Filmes exigem a duração em minutos.")
-            nova_midia = Filme(
-                titulo=midia_in.titulo,
-                genero=midia_in.genero,
-                ano=midia_in.ano,
-                classificacao_indicativa=midia_in.classificacao_indicativa,
-                elenco=midia_in.elenco,
-                duracao_minutos=midia_in.duracao_minutos
-            )
-        else:
-            nova_midia = Serie(
-                titulo=midia_in.titulo,
-                genero=midia_in.genero,
-                ano=midia_in.ano,
-                classificacao_indicativa=midia_in.classificacao_indicativa,
-                elenco=midia_in.elenco
-            )
+    # Extrai o tipo de forma segura (lidando com strings ou Enums)
+    tipo_str = midia_in.tipo.value if hasattr(midia_in.tipo, 'value') else str(midia_in.tipo)
+    tipo_norm = tipo_str.upper()
 
-        midia_salva = repo.adicionar(nova_midia)
-        return midia_salva
-    except (ValorInvalidoError, EstadoInvalidoError) as e:
-        raise HTTPException(status_code=400, detail=str(e))
-    except Exception as e:
-        raise HTTPException(status_code=400, detail="Erro ao criar mídia: " + str(e))
+    # Instancia a classe correta com base no payload
+    if "SERI" in tipo_norm or "SÉR" in tipo_norm:
+        nova_midia = Serie(
+            titulo=midia_in.titulo,
+            genero=midia_in.genero,
+            ano=midia_in.ano,
+            classificacao_indicativa=midia_in.classificacao_indicativa
+        )
+    else:
+        nova_midia = Filme(
+            titulo=midia_in.titulo,
+            genero=midia_in.genero,
+            ano=midia_in.ano,
+            duracao_minutos=getattr(midia_in, 'duracao_minutos', 0),
+            classificacao_indicativa=midia_in.classificacao_indicativa
+        )
+
+    repo.adicionar(nova_midia)
+    return nova_midia
 
 # 2. Relatório Top 10 (Deve vir antes do GET /{midia_id})
 @router.get("/relatorios/top10", response_model=List[MidiaResponse])
@@ -75,36 +71,8 @@ def avaliar_midia(midia_id: int, avaliacao: AvaliacaoCreate):
     except (ValorInvalidoError, EstadoInvalidoError) as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-# 5. Adicionar Episódio a Série
-@router.post("/{midia_id}/episodios", response_model=MidiaResponse)
-def adicionar_episodio(midia_id: int, ep_in: EpisodioCreate):
-    repo = get_midia_repository()
-    serie = repo.obter_por_id(midia_id)
 
-    if not serie or not isinstance(serie, Serie):
-        raise HTTPException(status_code=404, detail="Série não encontrada ou a mídia não é uma série.")
-
-    try:
-        novo_episodio = Episodio(
-            numero_temporada=ep_in.numero_temporada,
-            numero_episodio=ep_in.numero_episodio,
-            titulo=ep_in.titulo,
-            duracao_minutos=ep_in.duracao_minutos,
-            data_lancamento=ep_in.data_lancamento
-        )
-
-        temporada = next((t for t in serie.temporadas if t.numero == ep_in.numero_temporada), None)
-        if not temporada:
-            temporada = Temporada(ep_in.numero_temporada)
-            serie.adicionar_temporada(temporada)
-
-        temporada.adicionar_episodio(novo_episodio)
-        repo.atualizar(serie)
-        return serie
-    except (ValorInvalidoError, EstadoInvalidoError) as e:
-        raise HTTPException(status_code=400, detail=str(e))
-
-# 6. Atualizar Status
+# 5. Atualizar Status
 @router.patch("/{midia_id}/status", response_model=MidiaResponse)
 def atualizar_status(midia_id: int, status_update: StatusUpdate):
     repo = get_midia_repository()
@@ -123,7 +91,7 @@ def atualizar_status(midia_id: int, status_update: StatusUpdate):
     except (ValorInvalidoError, EstadoInvalidoError) as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-# 7. Obter Mídia por ID
+# 6. Obter Mídia por ID
 @router.get("/{midia_id}", response_model=MidiaResponse)
 def obter_midia(midia_id: int):
     repo = get_midia_repository()

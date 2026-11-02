@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 from typing import List
 
-from src.models.enums import StatusVisualizacao
+from src.models.enums import TipoMidia, StatusVisualizacao
 from src.models.midia import Midia
 from src.core.configuracao import configuracao_global
 
@@ -28,11 +28,22 @@ class RelatorioService:
 
         # Soma os minutos
         for midia in midias:
-            if midia.status == StatusVisualizacao.ASSISTIDO:
+            # Protege contra mídias que possam ter vindo com status None do banco
+            if getattr(midia, "status", None) == StatusVisualizacao.ASSISTIDO:
                 tipo_str = midia.tipo.value
-                minutos_por_tipo[tipo_str] += midia.duracao_minutos
 
-        # Converte para horas usando as configurações globais
+                # CORREÇÃO: Trata a chamada quer seja método () ou @property, e evita None
+                duracao = midia.duracao_minutos() if callable(getattr(midia, "duracao_minutos", None)) else getattr(midia, "duracao_minutos", 0)
+
+                # Se a duração veio vazia (None) do banco de dados, converte para 0
+                if duracao is None:
+                    duracao = 0
+
+                # Soma com segurança garantindo que o tipo existe no dicionário
+                if tipo_str in minutos_por_tipo:
+                    minutos_por_tipo[tipo_str] += duracao
+
+        # Converte para horas usando as configurações globais (mantido o seu código original)
         horas_por_tipo = {}
         for tipo, minutos in minutos_por_tipo.items():
             horas_por_tipo[tipo] = Midia.converter_minutos_para_horas(
