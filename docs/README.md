@@ -51,7 +51,7 @@ Após iniciar o servidor, pode interagir com a aplicação diretamente pelo **Sw
 
 **1. Adicionar um novo Filme**
 ```bash
-curl -X POST "http://127.0.0.1:8000/midias/" -H "Content-Type: application/json" -d "{\"titulo\": \"A Paixão de Cristo\", \"tipo\": \"FILME\", \"genero\": \"Drama\", \"ano\": 2004, \"duracao_minutos\": 127, \"elenco\": [\"Jim Caviezel\", \"Maia Morgenstern\", \"Monica Bellucci\"]}"
+curl -X POST "http://127.0.0.1:8000/midias/" -H "Content-Type: application/json" -d "{\"titulo\": \"A Paixão de Cristo\", \"tipo\": \"FILME\", \"genero\": \"Drama\", \"ano\": 2004, \"duracao_minutos\": 127, \"classificacao_indicativa\": \"14 anos\", \"elenco\": [\"Jim Caviezel\", \"Maia Morgenstern\", \"Monica Bellucci\"]}"
 ```
 
 **2. Gerar Relatório do Top 10 Mídias**
@@ -69,6 +69,23 @@ curl -X GET "http://127.0.0.1:8000/midias/relatorios/notas-por-genero" -H "accep
 curl -X GET "http://127.0.0.1:8000/midias/relatorios/tempo-total-por-tipo" -H "accept: application/json"
 
 ```
+**5. Criar um novo Usuário**
+```bash
+curl -X POST "http://127.0.0.1:8000/usuarios/" -H "Content-Type: application/json" -d "{\"nome\": \"Edson Santos\", \"email\": \"edson@exemplo.com\"}"
+```
+
+**6. Avaliar uma Mídia por ID**
+```bash
+curl -X POST "http://127.0.0.1:8000/midias/1/avaliar" -H "Content-Type: application/json" -d "{\"nota\": 9.5}"
+```
+
+---
+
+**7. Adicionar Mídia aos Favoritos de um Usuário
+```bash
+curl -X POST "http://127.0.0.1:8000/usuarios/e7a2cd03-6adf-4d0b-b8bf-a03ae3c3be0c/favoritos" -H "Content-Type: application/json" -d "{\"midia_id\": 1}"
+```
+
 > ** Nota sobre Ajuda (--help):** Por se tratar de uma API REST, a função de ajuda e exploração de comandos está disponível de forma visual e interativa através do Swagger UI. Após iniciar o servidor, aceda a `http://127.0.0.1:8000/docs` para ver todos os endpoints documentados, esquemas de dados e testar as requisições.
 
 ---
