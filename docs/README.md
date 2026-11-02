@@ -1,7 +1,9 @@
 # Catálogo de Filmes e Séries
 
 Aluno: Edson Oliveira Santos
+
 Matrícula: 2026002630
+
 Disciplina: ES0008 - PROGRAMAÇÃO ORIENTADA A OBJETOS
 
 ## 📌 Visão Geral
