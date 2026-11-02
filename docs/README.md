@@ -1,5 +1,9 @@
 # Catálogo de Filmes e Séries
 
+Aluno: Edson Oliveira Santos
+Matrícula: 2026002630
+Disciplina: ES0008 - PROGRAMAÇÃO ORIENTADA A OBJETOS
+
 ## 📌 Visão Geral
 
 Este projeto orientado a objetos (POO) desenvolvido em Python para a gestão de um catálogo pessoal de filmes e séries. O sistema permite acompanhar o progresso de visualização, gerir episódios e temporadas, avaliar mídias, organizar listas personalizadas e consultar estatísticas e relatórios avançados de consumo.
@@ -56,7 +60,7 @@ Definição de exceções específicas de domínio (`ValorInvalidoError`, `Estad
 
 <details>
 <summary>🔍 Clique aqui para expandir o diagrama.</summary>
-  
+
 ```mermaid
     classDiagram
     class Midia {
@@ -118,6 +122,9 @@ Nota: Um diagrama de arquitetura completo com as camadas de persistência e rota
 
 ## 📂 Estrutura de Arquivos e Diretórios
 
+<details>
+<summary>🔍 Clique aqui para expandir a arquitetura.</summary>
+
 ```text
 catalogo_de_filmes_e_series/
 │
@@ -171,6 +178,7 @@ catalogo_de_filmes_e_series/
 ├── seed.py                      # Script de povoamento inicial do banco de dados
 └── settings.example.json        # Exemplo de configuração exigido pela rubrica
 ```
+</details>
 
 ---
 
@@ -249,6 +257,7 @@ curl -X GET "[http://127.0.0.1:8000/midias/relatorios/notas-por-genero](http://1
 ```bash
 curl -X GET "[http://127.0.0.1:8000/midias/relatorios/tempo-total-por-tipo](http://127.0.0.1:8000/midias/relatorios/tempo-total-por-tipo)" -H "accept: application/json"
 ---
+```
 
 ## 🧪 Executando os Testes Automatizados
 
