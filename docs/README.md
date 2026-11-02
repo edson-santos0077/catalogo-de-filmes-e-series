@@ -258,8 +258,9 @@ curl -X GET "[http://127.0.0.1:8000/midias/relatorios/notas-por-genero](http://1
 **4. Obter Tempo Total Assistido por Tipo (Filmes vs Séries)**
 ```bash
 curl -X GET "[http://127.0.0.1:8000/midias/relatorios/tempo-total-por-tipo](http://127.0.0.1:8000/midias/relatorios/tempo-total-por-tipo)" -H "accept: application/json"
----
+
 ```
+---
 
 ## 🧪 Executando os Testes Automatizados
 
