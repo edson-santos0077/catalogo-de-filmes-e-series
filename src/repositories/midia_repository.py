@@ -106,34 +106,57 @@ class MidiaRepositorySQLite(MidiaRepository):
             cursor = conexao.cursor()
             for midia in midias:
                 nota_valor = midia.nota
-                data_conclusao_str = midia.data_conclusao.isoformat() if midia.data_conclusao else None
+                data_conclusao_str = (
+                    midia.data_conclusao.isoformat() if midia.data_conclusao else None
+                )
 
                 # 1. Salvar a Mídia Base
                 if midia.id is None:
                     cursor.execute(
                         """INSERT INTO midias (titulo, tipo, genero, ano, duracao_minutos, classificacao, status, nota, data_conclusao)
                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-                        (midia.titulo, midia.tipo.value, midia.genero, midia.ano, midia.duracao_minutos,
-                         midia.classificacao_indicativa, midia.status.value, nota_valor, data_conclusao_str)
+                        (
+                            midia.titulo,
+                            midia.tipo.value,
+                            midia.genero,
+                            midia.ano,
+                            midia.duracao_minutos,
+                            midia.classificacao_indicativa,
+                            midia.status.value,
+                            nota_valor,
+                            data_conclusao_str,
+                        ),
                     )
                     midia.id = cursor.lastrowid
                 else:
                     cursor.execute(
                         """UPDATE midias SET titulo=?, tipo=?, genero=?, ano=?, duracao_minutos=?, classificacao=?, status=?, nota=?, data_conclusao=?
                            WHERE id=?""",
-                        (midia.titulo, midia.tipo.value, midia.genero, midia.ano, midia.duracao_minutos,
-                         midia.classificacao_indicativa, midia.status.value, nota_valor, data_conclusao_str, midia.id)
+                        (
+                            midia.titulo,
+                            midia.tipo.value,
+                            midia.genero,
+                            midia.ano,
+                            midia.duracao_minutos,
+                            midia.classificacao_indicativa,
+                            midia.status.value,
+                            nota_valor,
+                            data_conclusao_str,
+                            midia.id,
+                        ),
                     )
 
                 # 2. Se for Série, salvar a hierarquia de Temporadas e Episódios
                 if midia.tipo == TipoMidia.SERIE:
                     # Estratégia simples: limpar as temporadas antigas e recriar (aproveitando o ON DELETE CASCADE)
-                    cursor.execute("DELETE FROM temporadas WHERE serie_id = ?", (midia.id,))
+                    cursor.execute(
+                        "DELETE FROM temporadas WHERE serie_id = ?", (midia.id,)
+                    )
 
                     for temporada in midia.temporadas:
                         cursor.execute(
                             "INSERT INTO temporadas (serie_id, numero) VALUES (?, ?)",
-                            (midia.id, temporada.numero)
+                            (midia.id, temporada.numero),
                         )
                         temporada_id = cursor.lastrowid
 
@@ -141,7 +164,14 @@ class MidiaRepositorySQLite(MidiaRepository):
                             cursor.execute(
                                 """INSERT INTO episodios (temporada_id, numero_episodio, titulo, duracao_minutos, status, nota)
                                    VALUES (?, ?, ?, ?, ?, ?)""",
-                                (temporada_id, ep.numero_episodio, ep.titulo, ep.duracao_minutos, ep.status.value, ep.nota)
+                                (
+                                    temporada_id,
+                                    ep.numero_episodio,
+                                    ep.titulo,
+                                    ep.duracao_minutos,
+                                    ep.status.value,
+                                    ep.nota,
+                                ),
                             )
 
     def carregar_todos(self) -> list[Midia]:
@@ -186,14 +216,19 @@ class MidiaRepositorySQLite(MidiaRepository):
                         serie.data_conclusao = dados["data_conclusao"]
 
                     # --- CORREÇÃO: Buscar as temporadas desta série ---
-                    cursor.execute("SELECT * FROM temporadas WHERE serie_id = ?", (serie.id,))
+                    cursor.execute(
+                        "SELECT * FROM temporadas WHERE serie_id = ?", (serie.id,)
+                    )
                     temporadas_db = cursor.fetchall()
 
                     for temp_db in temporadas_db:
                         temporada = Temporada(numero=temp_db["numero"])
 
                         # Buscar os episódios desta temporada
-                        cursor.execute("SELECT * FROM episodios WHERE temporada_id = ?", (temp_db["id"],))
+                        cursor.execute(
+                            "SELECT * FROM episodios WHERE temporada_id = ?",
+                            (temp_db["id"],),
+                        )
                         episodios_db = cursor.fetchall()
 
                         for ep_db in episodios_db:
@@ -201,7 +236,7 @@ class MidiaRepositorySQLite(MidiaRepository):
                                 numero_temporada=temporada.numero,
                                 numero_episodio=ep_db["numero_episodio"],
                                 titulo=ep_db["titulo"],
-                                duracao_minutos=ep_db["duracao_minutos"]
+                                duracao_minutos=ep_db["duracao_minutos"],
                             )
                             if ep_db["status"]:
                                 ep.alterar_status(StatusVisualizacao(ep_db["status"]))
@@ -215,3 +250,17 @@ class MidiaRepositorySQLite(MidiaRepository):
                     midias.append(serie)
 
             return midias
+
+
+# Pode alterar para MidiaRepositoryJSON() se preferir gravar em JSON
+# Lê a configuração do ambiente, usando SQLite por defeito
+TIPO_BANCO = os.getenv("TIPO_BANCO", "SQLITE").upper()
+
+if TIPO_BANCO == "JSON":
+    _midia_repo_instance = MidiaRepositoryJSON()
+else:
+    _midia_repo_instance = MidiaRepositorySQLite()
+
+
+def get_midia_repository() -> MidiaRepository:
+    return _midia_repo_instance

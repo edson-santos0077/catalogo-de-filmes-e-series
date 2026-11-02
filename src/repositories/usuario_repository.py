@@ -3,7 +3,11 @@ import os
 from abc import ABC, abstractmethod
 
 from src.models.usuario import Usuario
-from src.repositories.database import JSON_USUARIOS_PATH, inicializar_banco, obter_conexao
+from src.repositories.database import (
+    JSON_USUARIOS_PATH,
+    inicializar_banco,
+    obter_conexao,
+)
 
 
 class UsuarioRepository(ABC):
@@ -93,3 +97,16 @@ class UsuarioRepositorySQLite(UsuarioRepository):
                 email=dados["email"],
                 limite_listas=dados["limite_listas"],
             )
+
+
+# Lê a configuração do ambiente, usando SQLite por defeito
+TIPO_BANCO = os.getenv("TIPO_BANCO", "SQLITE").upper()
+
+if TIPO_BANCO == "JSON":
+    _usuario_repo_instance = UsuarioRepositoryJSON()
+else:
+    _usuario_repo_instance = UsuarioRepositorySQLite()
+
+
+def get_usuario_repository() -> UsuarioRepository:
+    return _usuario_repo_instance
